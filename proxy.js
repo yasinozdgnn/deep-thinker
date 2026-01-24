@@ -25,18 +25,15 @@ const server = http.createServer((req, res) => {
         try {
             const incomingData = JSON.parse(body);
 
-            // Debug: Gelen isteği logla
             console.log("\n--- Incoming Request ---");
             console.log(JSON.stringify(incomingData, null, 2));
 
-            // GLM API için temiz request oluştur
             const requestData = {
                 model: "glm-4.7",
                 messages: incomingData.messages || [],
                 thinking: { type: "enabled" }
             };
 
-            // Opsiyonel parametreleri ekle (GLM'in destekledikleri)
             if (incomingData.temperature !== undefined) {
                 requestData.temperature = incomingData.temperature;
             }
@@ -47,7 +44,6 @@ const server = http.createServer((req, res) => {
                 requestData.stream = incomingData.stream;
             }
 
-            // Debug: Giden isteği logla
             console.log("\n--- Outgoing Request to GLM ---");
             console.log(JSON.stringify(requestData, null, 2));
 
@@ -87,3 +83,4 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
     console.log(`GLM Deep Thinking Proxy running on http://localhost:${PORT}`);
 });
+
