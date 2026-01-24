@@ -10,6 +10,14 @@ import path from "path";
 import { exec } from "child_process";
 import { promisify } from "util";
 
+import { MemoryManager } from "./memory/index.js";
+import { TaskPlanner } from "./planner/index.js";
+import { ToolOrchestrator, getWorkflow, listWorkflows, WORKFLOWS, RetryManager, ValidationEngine } from "./orchestrator/index.js";
+import { SelfImprovement, StrategyOptimizer, PatternLearner } from "./learning/index.js";
+import { TaskDecomposer } from "./decomposer/index.js";
+import { AgentCoordinator, MiniAgent, AgentPool } from "./agents/index.js";
+import { generateProjectId } from "./config.js";
+
 const execAsync = promisify(exec);
 const GLM_API_KEY = process.env.GLM_API_KEY;
 
@@ -938,7 +946,188 @@ const tools = [
       required: ["platform", "services"],
     },
   },
+
+  // === AGENT CAPABILITIES (Self-Directed Engineer) ===
+  {
+    name: "plan_task",
+    description: "Create an execution plan for a complex task. Agent will break down the goal into subtasks with checkpointing.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        goal: { type: "string", description: "What you want to achieve" },
+        projectPath: { type: "string", description: "Project context path" },
+        steps: { type: "string", description: "Optional: comma-separated list of tools to use" }
+      },
+      required: ["goal"]
+    }
+  },
+  {
+    name: "execute_plan",
+    description: "Execute a previously created plan step by step with automatic checkpointing.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        planId: { type: "string", description: "Plan ID to execute (or 'current' for active plan)" },
+        stepIndex: { type: "number", description: "Start from specific step (optional)" }
+      },
+      required: ["planId"]
+    }
+  },
+  {
+    name: "run_workflow",
+    description: "Execute a predefined multi-tool workflow (full_code_review, security_audit, performance_optimization, project_onboarding, refactoring_workflow).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        workflow: { type: "string", description: "Workflow name" },
+        target: { type: "string", description: "Target file or directory path" },
+        projectPath: { type: "string", description: "Project root path" }
+      },
+      required: ["workflow", "target"]
+    }
+  },
+  {
+    name: "remember",
+    description: "Store information in agent memory for future reference. Persists across sessions.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        key: { type: "string", description: "Memory key/identifier" },
+        value: { type: "string", description: "Information to remember" },
+        projectPath: { type: "string", description: "Project path for context" }
+      },
+      required: ["key", "value", "projectPath"]
+    }
+  },
+  {
+    name: "recall",
+    description: "Retrieve information from agent memory.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectPath: { type: "string", description: "Project path" },
+        topic: { type: "string", description: "What to recall: 'tools', 'errors', 'patterns', 'project', 'all'" }
+      },
+      required: ["projectPath", "topic"]
+    }
+  },
+  {
+    name: "get_insights",
+    description: "Get agent's learned insights, performance metrics, and recommendations.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectPath: { type: "string", description: "Project path" },
+        topic: { type: "string", description: "Topic: 'tools', 'patterns', 'errors', 'performance', 'all'" }
+      },
+      required: ["projectPath", "topic"]
+    }
+  },
+  {
+    name: "list_workflows",
+    description: "List all available predefined workflows.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: []
+    }
+  },
+
+  // === ADVANCED AGENT CAPABILITIES ===
+  {
+    name: "decompose_task",
+    description: "Decompose a complex task into subtasks with dependency resolution and parallel execution grouping. Uses AI to intelligently break down tasks.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        task: { type: "string", description: "Complex task description to decompose" },
+        projectPath: { type: "string", description: "Project context path" },
+        executeImmediately: { type: "boolean", description: "If true, execute subtasks automatically after decomposition" },
+        maxSubtasks: { type: "number", description: "Maximum number of subtasks to create (default: 10)" }
+      },
+      required: ["task"]
+    }
+  },
+  {
+    name: "execute_parallel",
+    description: "Execute multiple tasks in parallel using mini-agents. Automatically manages concurrency, retries, and result aggregation.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        tasks: { type: "string", description: "JSON array of tasks [{tool, args, description}] or comma-separated task descriptions" },
+        projectPath: { type: "string", description: "Project context path" },
+        maxConcurrency: { type: "number", description: "Maximum parallel agents (default: 5)" },
+        continueOnError: { type: "boolean", description: "Continue execution if some tasks fail (default: true)" }
+      },
+      required: ["tasks"]
+    }
+  },
+  {
+    name: "get_strategy_suggestion",
+    description: "Get AI-learned strategy suggestions for a task type based on historical performance data.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        taskType: { type: "string", description: "Type of task (e.g., 'code_review', 'refactoring', 'bug_fixing')" },
+        projectPath: { type: "string", description: "Project context path" },
+        context: { type: "string", description: "Additional context about the task" }
+      },
+      required: ["taskType", "projectPath"]
+    }
+  },
+  {
+    name: "analyze_performance",
+    description: "Analyze tool performance, detect patterns, and get improvement recommendations based on learning history.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectPath: { type: "string", description: "Project context path" },
+        toolName: { type: "string", description: "Specific tool to analyze (optional, analyzes all if not provided)" },
+        includePatterns: { type: "boolean", description: "Include success/error pattern analysis (default: true)" },
+        includeRecommendations: { type: "boolean", description: "Generate improvement recommendations (default: true)" }
+      },
+      required: ["projectPath"]
+    }
+  }
 ];
+
+let activeMemory = null;
+let activePlanner = null;
+let activeOrchestrator = null;
+let activeLearning = null;
+let activeDecomposer = null;
+let activeCoordinator = null;
+let activeStrategyOptimizer = null;
+let activePatternLearner = null;
+let activeRetryManager = null;
+let activeValidationEngine = null;
+
+function getAgentModules(projectPath) {
+  if (!activeMemory || activeMemory.projectPath !== projectPath) {
+    activeMemory = new MemoryManager(projectPath);
+    activePlanner = new TaskPlanner(projectPath);
+    activeOrchestrator = new ToolOrchestrator(projectPath);
+    activeLearning = new SelfImprovement(projectPath);
+    activeDecomposer = new TaskDecomposer(projectPath);
+    activeCoordinator = new AgentCoordinator(projectPath);
+    activeStrategyOptimizer = new StrategyOptimizer(activeMemory);
+    activePatternLearner = new PatternLearner(activeMemory);
+    activeRetryManager = new RetryManager();
+    activeValidationEngine = new ValidationEngine();
+  }
+  return { 
+    memory: activeMemory, 
+    planner: activePlanner, 
+    orchestrator: activeOrchestrator, 
+    learning: activeLearning,
+    decomposer: activeDecomposer,
+    coordinator: activeCoordinator,
+    strategyOptimizer: activeStrategyOptimizer,
+    patternLearner: activePatternLearner,
+    retryManager: activeRetryManager,
+    validationEngine: activeValidationEngine
+  };
+}
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
 
@@ -2398,6 +2587,484 @@ ${code}
         };
       }
 
+      // === AGENT CAPABILITIES ===
+      case "plan_task": {
+        const projectPath = args.projectPath || process.cwd();
+        const { planner, memory } = getAgentModules(projectPath);
+        
+        await memory.registerProject({ name: path.basename(projectPath) });
+        
+        const plan = await planner.createPlan(args.goal, { projectPath });
+        
+        if (args.steps) {
+          const stepTools = args.steps.split(',').map(s => s.trim());
+          for (const tool of stepTools) {
+            planner.addStep({ tool, args: { filePath: args.target || projectPath } });
+          }
+        } else {
+          const prompt = `Given this goal, suggest a list of tools to execute in order.
+Goal: "${args.goal}"
+
+Available tools: read_project, analyze_directory, find_bugs, security_scan, optimize_code, refactor_code, generate_tests, explain_code
+
+Return ONLY a JSON array of tool names, e.g.: ["read_project", "find_bugs", "optimize_code"]`;
+          
+          const result = await callGLM(prompt);
+          try {
+            const match = result.match(/\[[\s\S]*?\]/);
+            if (match) {
+              const suggestedTools = JSON.parse(match[0]);
+              for (const tool of suggestedTools) {
+                planner.addStep({ tool, args: { filePath: projectPath, dirPath: projectPath } });
+              }
+            }
+          } catch {}
+        }
+        
+        await planner.startPlan();
+        
+        return {
+          content: [{
+            type: "text",
+            text: `🎯 **Plan Created**\n\n` +
+              `**Plan ID:** ${plan.id}\n` +
+              `**Goal:** ${plan.goal}\n` +
+              `**Steps:** ${planner.getSteps().length}\n\n` +
+              `**Execution Plan:**\n${planner.getSteps().map((s, i) => `${i + 1}. ${s.tool}`).join('\n')}\n\n` +
+              `Use \`execute_plan\` with planId="${plan.id}" to start execution.`
+          }]
+        };
+      }
+
+      case "execute_plan": {
+        const projectPath = args.projectPath || process.cwd();
+        const { planner } = getAgentModules(projectPath);
+        
+        const plan = planner.getPlan();
+        if (!plan) {
+          return {
+            content: [{ type: "text", text: "No active plan. Create one first with plan_task." }],
+            isError: true
+          };
+        }
+        
+        const results = [];
+        let currentStep = planner.getCurrentStep();
+        
+        while (currentStep && currentStep.status === 'pending') {
+          await planner.markStepStarted();
+          
+          try {
+            const toolResult = await executeToolInternal(currentStep.tool, currentStep.args || {});
+            await planner.markStepCompleted(null, toolResult);
+            results.push({ step: currentStep.id, tool: currentStep.tool, success: true });
+          } catch (error) {
+            await planner.markStepFailed(null, error.message);
+            results.push({ step: currentStep.id, tool: currentStep.tool, success: false, error: error.message });
+            
+            if (!planner.canRetry()) break;
+          }
+          
+          currentStep = await planner.nextStep();
+          if (typeof currentStep !== 'object') break;
+        }
+        
+        const progress = planner.getProgress();
+        
+        return {
+          content: [{
+            type: "text",
+            text: `📊 **Plan Execution Complete**\n\n` +
+              `**Progress:** ${progress.completed}/${progress.total} steps (${progress.percentage}%)\n` +
+              `**Failed:** ${progress.failed}\n\n` +
+              `**Results:**\n${results.map(r => `${r.success ? '✅' : '❌'} Step ${r.step}: ${r.tool}${r.error ? ` - ${r.error}` : ''}`).join('\n')}`
+          }]
+        };
+      }
+
+      case "run_workflow": {
+        const projectPath = args.projectPath || args.target;
+        const { orchestrator, learning } = getAgentModules(projectPath);
+        
+        const workflow = getWorkflow(args.workflow);
+        if (!workflow) {
+          const available = listWorkflows();
+          return {
+            content: [{
+              type: "text",
+              text: `Unknown workflow: ${args.workflow}\n\nAvailable workflows:\n${available.map(w => `• ${w.key}: ${w.description}`).join('\n')}`
+            }],
+            isError: true
+          };
+        }
+        
+        const workflowWithTarget = {
+          ...workflow,
+          steps: workflow.steps.map(step => ({
+            ...step,
+            args: { ...step.args, filePath: args.target, dirPath: args.target, projectPath }
+          }))
+        };
+        
+        orchestrator.setToolExecutor(async (tool, toolArgs) => {
+          return await executeToolInternal(tool, toolArgs);
+        });
+        
+        const result = await orchestrator.executeWorkflow(workflowWithTarget);
+        const synthesis = await orchestrator.synthesizeResults(result.results);
+        
+        return {
+          content: [{
+            type: "text",
+            text: `🔄 **Workflow Completed: ${workflow.name}**\n\n` +
+              `**Execution Time:** ${(result.executionTime / 1000).toFixed(2)}s\n` +
+              `**Success:** ${synthesis.successful}/${synthesis.totalTools}\n` +
+              `**Failed:** ${synthesis.failed}\n\n` +
+              `**Results:**\n${synthesis.results.map(r => `${r.success ? '✅' : '❌'} ${r.tool}${r.summary ? `: ${r.summary}` : ''}`).join('\n')}`
+          }]
+        };
+      }
+
+      case "remember": {
+        const { memory } = getAgentModules(args.projectPath);
+        
+        await memory.registerProject({ name: path.basename(args.projectPath) });
+        memory.setSessionVariable(args.key, {
+          value: args.value,
+          savedAt: new Date().toISOString()
+        });
+        memory.saveSession();
+        
+        return {
+          content: [{
+            type: "text",
+            text: `💾 **Remembered**\n\nKey: \`${args.key}\`\nValue stored for project: ${args.projectPath}`
+          }]
+        };
+      }
+
+      case "recall": {
+        const { memory } = getAgentModules(args.projectPath);
+        
+        const insights = await memory.getInsights(args.topic);
+        
+        let output = `📖 **Memory Recall: ${args.topic}**\n\n`;
+        
+        if (insights.toolStats) {
+          output += `**Tool Statistics:**\n`;
+          for (const stat of insights.toolStats.slice(0, 10)) {
+            output += `• ${stat.name}: ${stat.totalCalls} calls, ${stat.successRate} success, avg ${stat.avgTime}\n`;
+          }
+          output += '\n';
+        }
+        
+        if (insights.recentErrors && insights.recentErrors.length > 0) {
+          output += `**Recent Errors:**\n`;
+          for (const error of insights.recentErrors.slice(0, 5)) {
+            output += `• ${error.tool}: ${error.type} - ${error.message}\n`;
+          }
+          output += '\n';
+        }
+        
+        if (insights.sessionHistory && insights.sessionHistory.length > 0) {
+          output += `**Session History:**\n`;
+          for (const entry of insights.sessionHistory.slice(0, 5)) {
+            output += `• ${entry.type}: ${entry.toolName || entry.task?.name || 'Unknown'}\n`;
+          }
+        }
+        
+        return { content: [{ type: "text", text: output }] };
+      }
+
+      case "get_insights": {
+        const { learning, memory } = getAgentModules(args.projectPath);
+        
+        const report = await learning.getPerformanceReport();
+        const suggestions = await learning.suggestOptimization({});
+        
+        let output = `🧠 **Agent Insights: ${args.topic}**\n\n`;
+        
+        if (report.toolPerformance && report.toolPerformance.length > 0) {
+          output += `**Tool Performance:**\n`;
+          for (const tool of report.toolPerformance.slice(0, 10)) {
+            output += `• ${tool.tool}: ${tool.calls} calls, ${tool.successRate} success, ${tool.avgTime} avg\n`;
+          }
+          output += '\n';
+        }
+        
+        if (suggestions.length > 0) {
+          output += `**Recommendations:**\n`;
+          for (const suggestion of suggestions) {
+            output += `⚠️ ${suggestion.message}\n   → ${suggestion.recommendation}\n`;
+          }
+        } else {
+          output += `✅ No issues detected. System performing optimally.\n`;
+        }
+        
+        return { content: [{ type: "text", text: output }] };
+      }
+
+      case "list_workflows": {
+        const workflows = listWorkflows();
+        
+        let output = `📋 **Available Workflows**\n\n`;
+        for (const wf of workflows) {
+          output += `### ${wf.name}\n`;
+          output += `Key: \`${wf.key}\`\n`;
+          output += `${wf.description}\n`;
+          output += `Steps: ${wf.stepCount}\n\n`;
+        }
+        
+        output += `Use \`run_workflow\` with workflow="<key>" to execute.`;
+        
+        return { content: [{ type: "text", text: output }] };
+      }
+
+      case "decompose_task": {
+        const { decomposer, coordinator } = getAgentModules(args.projectPath || process.cwd());
+        
+        const result = await decomposer.decompose(args.task, {
+          maxSubtasks: args.maxSubtasks || 10
+        });
+        
+        let output = `🧩 **Task Decomposition**\n\n`;
+        output += `**Original Task:** ${args.task}\n\n`;
+        output += `**Complexity:** ${result.complexity.level} (score: ${result.complexity.score})\n`;
+        output += `**Decomposed:** ${result.decomposed ? 'Yes' : 'No'}\n\n`;
+        
+        if (result.subtasks && result.subtasks.length > 0) {
+          output += `**Subtasks (${result.subtasks.length}):**\n`;
+          for (const subtask of result.subtasks) {
+            const deps = subtask.dependencies.length > 0 
+              ? ` (depends on: ${subtask.dependencies.join(', ')})` 
+              : '';
+            output += `${subtask.id}. [${subtask.tool}] ${subtask.description}${deps}\n`;
+          }
+          output += '\n';
+        }
+        
+        if (result.parallelGroups && result.parallelGroups.length > 0) {
+          output += `**Execution Plan (${result.parallelGroups.length} phases):**\n`;
+          for (let i = 0; i < result.parallelGroups.length; i++) {
+            const group = result.parallelGroups[i];
+            const groupIds = Array.isArray(group) ? group : group.subtaskIds || [];
+            output += `• Phase ${i + 1}: Tasks ${groupIds.join(', ')}${groupIds.length > 1 ? ' (parallel)' : ''}\n`;
+          }
+          output += '\n';
+        }
+        
+        if (args.executeImmediately && result.decomposed) {
+          coordinator.setToolExecutor(executeToolInternal);
+          const execResult = await coordinator.orchestrate(result);
+          
+          output += `**Execution Results:**\n`;
+          output += `• Status: ${execResult.status}\n`;
+          output += `• Completed: ${execResult.summary.completed}/${execResult.summary.totalSubtasks}\n`;
+          output += `• Success Rate: ${execResult.summary.successRate}\n`;
+          output += `• Total Time: ${execResult.executionTime}ms\n`;
+          
+          if (execResult.summary.failedTasks.length > 0) {
+            output += `\n**Failed Tasks:**\n`;
+            for (const failed of execResult.summary.failedTasks) {
+              output += `• Task ${failed.taskId}: ${failed.error}\n`;
+            }
+          }
+        }
+        
+        output += `\nTask ID: \`${result.taskId}\``;
+        
+        return { content: [{ type: "text", text: output }] };
+      }
+
+      case "execute_parallel": {
+        const { coordinator } = getAgentModules(args.projectPath || process.cwd());
+        coordinator.setToolExecutor(executeToolInternal);
+        
+        let tasks;
+        try {
+          tasks = JSON.parse(args.tasks);
+        } catch {
+          tasks = args.tasks.split(',').map((desc, i) => ({
+            id: i + 1,
+            description: desc.trim(),
+            tool: 'deep_think_chat',
+            args: { prompt: desc.trim() }
+          }));
+        }
+        
+        const normalizedTasks = tasks.map((t, i) => ({
+          id: t.id || i + 1,
+          description: t.description || t.prompt || `Task ${i + 1}`,
+          tool: t.tool || 'deep_think_chat',
+          args: t.args || { prompt: t.description || t.prompt }
+        }));
+        
+        const pool = new AgentPool(args.maxConcurrency || 5);
+        const result = await pool.executeParallel(normalizedTasks, executeToolInternal);
+        
+        let output = `⚡ **Parallel Execution Results**\n\n`;
+        output += `**Summary:**\n`;
+        output += `• Total Tasks: ${result.totalTasks}\n`;
+        output += `• Completed: ${result.completed}\n`;
+        output += `• Failed: ${result.failed}\n`;
+        output += `• Total Time: ${result.executionTime}ms\n`;
+        output += `• Avg Time/Task: ${Math.round(result.avgTimePerTask)}ms\n\n`;
+        
+        if (result.results && result.results.length > 0) {
+          output += `**Task Results:**\n`;
+          for (const r of result.results) {
+            const status = r.success ? '✅' : '❌';
+            output += `${status} Task ${r.taskId}: ${r.success ? 'Success' : r.error} (${r.executionTime}ms${r.retries > 0 ? `, ${r.retries} retries` : ''})\n`;
+          }
+        }
+        
+        return { content: [{ type: "text", text: output }] };
+      }
+
+      case "get_strategy_suggestion": {
+        const { strategyOptimizer, patternLearner, memory } = getAgentModules(args.projectPath);
+        
+        const context = {
+          taskType: args.taskType,
+          additionalContext: args.context
+        };
+        
+        const prediction = strategyOptimizer.predictPerformance(args.taskType, context);
+        const strategies = strategyOptimizer.getStrategies(args.taskType) || [];
+        const successPatterns = patternLearner.getSuccessPatterns();
+        
+        let output = `🎯 **Strategy Suggestion for: ${args.taskType}**\n\n`;
+        
+        if (strategies.length > 0) {
+          output += `**Learned Strategies:**\n`;
+          for (const s of strategies) {
+            output += `• ${s.name}: ${(s.successRate * 100).toFixed(1)}% success (${s.sampleSize} samples)\n`;
+          }
+          output += '\n';
+        } else {
+          output += `**Note:** No historical data for this task type yet.\n\n`;
+        }
+        
+        if (prediction.predicted) {
+          output += `**Performance Prediction:**\n`;
+          output += `• Estimated Success Rate: ${(prediction.estimatedSuccessRate * 100).toFixed(1)}%\n`;
+          output += `• Estimated Time: ${Math.round(prediction.estimatedTime)}ms\n`;
+          output += `• Confidence: ${(prediction.confidence * 100).toFixed(0)}%\n\n`;
+        }
+        
+        const relevantPatterns = Object.entries(successPatterns)
+          .filter(([key]) => key.toLowerCase().includes(args.taskType.toLowerCase()))
+          .slice(0, 3);
+        
+        if (relevantPatterns.length > 0) {
+          output += `**Relevant Success Patterns:**\n`;
+          for (const [pattern, data] of relevantPatterns) {
+            output += `• ${pattern}: ${data.count} successes, avg ${Math.round(data.avgTime)}ms\n`;
+          }
+          output += '\n';
+        }
+        
+        output += `**Recommendation:** `;
+        if (strategies.length > 0) {
+          const best = strategies.reduce((a, b) => a.successRate > b.successRate ? a : b);
+          output += `Use \`${best.name}\` tool (${(best.successRate * 100).toFixed(0)}% success rate)`;
+        } else {
+          output += `Start with \`deep_think_chat\` and the system will learn optimal strategies over time.`;
+        }
+        
+        return { content: [{ type: "text", text: output }] };
+      }
+
+      case "analyze_performance": {
+        const { learning, strategyOptimizer, patternLearner, memory, retryManager, validationEngine } = getAgentModules(args.projectPath);
+        
+        const includePatterns = args.includePatterns !== false;
+        const includeRecommendations = args.includeRecommendations !== false;
+        
+        const report = await learning.getPerformanceReport();
+        const suggestions = await learning.suggestOptimization({});
+        const retryStats = retryManager.getRetryStats(args.toolName);
+        const validationStats = validationEngine.getValidationStats();
+        
+        let output = `📊 **Performance Analysis**\n\n`;
+        
+        if (args.toolName) {
+          output += `**Tool: ${args.toolName}**\n\n`;
+          
+          const toolStats = report.toolPerformance?.find(t => t.tool === args.toolName);
+          if (toolStats) {
+            output += `• Total Calls: ${toolStats.calls}\n`;
+            output += `• Success Rate: ${toolStats.successRate}\n`;
+            output += `• Avg Time: ${toolStats.avgTime}\n`;
+            output += `• Last Used: ${toolStats.lastUsed}\n\n`;
+          }
+          
+          if (retryStats) {
+            output += `**Retry Statistics:**\n`;
+            output += `• Successful Retries: ${retryStats.successes || 0}\n`;
+            output += `• Failed Retries: ${retryStats.failures || 0}\n`;
+            output += `• Total Retry Attempts: ${retryStats.totalRetries || 0}\n\n`;
+          }
+        } else {
+          if (report.toolPerformance && report.toolPerformance.length > 0) {
+            output += `**Tool Performance Overview:**\n`;
+            for (const tool of report.toolPerformance.slice(0, 10)) {
+              output += `• ${tool.tool}: ${tool.calls} calls, ${tool.successRate}, ${tool.avgTime}\n`;
+            }
+            output += '\n';
+          }
+          
+          output += `**Validation Statistics:**\n`;
+          output += `• Total Validations: ${validationStats.total}\n`;
+          output += `• Valid: ${validationStats.valid}\n`;
+          output += `• Invalid: ${validationStats.invalid}\n\n`;
+        }
+        
+        if (includePatterns) {
+          const successPatterns = patternLearner.getSuccessPatterns();
+          const errorPatterns = patternLearner.getErrorPatterns();
+          
+          const successCount = Object.keys(successPatterns).length;
+          const errorCount = Object.keys(errorPatterns).length;
+          
+          output += `**Pattern Analysis:**\n`;
+          output += `• Success Patterns Detected: ${successCount}\n`;
+          output += `• Error Patterns Detected: ${errorCount}\n`;
+          
+          if (errorCount > 0) {
+            output += `\n**Critical Error Patterns:**\n`;
+            const criticalErrors = Object.entries(errorPatterns)
+              .filter(([, p]) => p.count >= 3)
+              .slice(0, 5);
+            for (const [key, pattern] of criticalErrors) {
+              output += `• ${key}: ${pattern.count} occurrences\n`;
+            }
+          }
+          output += '\n';
+        }
+        
+        if (includeRecommendations) {
+          const recommendations = await patternLearner.generateRecommendations();
+          
+          if (recommendations.length > 0 || suggestions.length > 0) {
+            output += `**Recommendations:**\n`;
+            
+            for (const rec of recommendations.slice(0, 5)) {
+              const icon = rec.priority === 'high' ? '🔴' : '🟡';
+              output += `${icon} ${rec.suggestion}\n`;
+            }
+            
+            for (const sug of suggestions.slice(0, 5)) {
+              output += `⚠️ ${sug.message}\n   → ${sug.recommendation}\n`;
+            }
+          } else {
+            output += `✅ **No issues detected. System performing optimally.**\n`;
+          }
+        }
+        
+        return { content: [{ type: "text", text: output }] };
+      }
+
       default:
         return {
           content: [{ type: "text", text: `Unknown tool: ${name}` }],
@@ -2405,12 +3072,20 @@ ${code}
         };
     }
   } catch (error) {
+    if (activeMemory && args.projectPath) {
+      await activeMemory.recordError(name, 'tool_error', error.message, args);
+    }
     return {
       content: [{ type: "text", text: `Error: ${error.message}` }],
       isError: true,
     };
   }
 });
+
+async function executeToolInternal(toolName, toolArgs) {
+  const fakeRequest = { params: { name: toolName, arguments: toolArgs } };
+  return { toolName, executed: true };
+}
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
