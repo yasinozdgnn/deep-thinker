@@ -38,6 +38,48 @@ export const fileOpsHandlers = {
     return { content: [{ type: "text", text: output }] };
   },
 
+  read_project: async (args) => {
+    const depth = args.depth || 3;
+    const projectPath = args.projectPath || process.cwd();
+    const importantFiles = [
+      "package.json", "tsconfig.json", "vite.config.js", "vite.config.ts",
+      "next.config.js", "next.config.ts", ".env.example", "README.md",
+      "index.js", "index.ts", "main.js", "main.ts", "app.js", "app.ts",
+      "src/index.js", "src/index.ts", "src/main.js", "src/main.ts", "src/App.tsx", "src/App.jsx"
+    ];
+
+    let projectInfo = `## Project: ${projectPath}\n\n`;
+
+    // Read important files
+    for (const file of importantFiles) {
+      try {
+        const content = await readFileContent(path.join(projectPath, file));
+        projectInfo += `### ${file}\n\`\`\`\n${content.slice(0, 2000)}${content.length > 2000 ? "\n...(truncated)" : ""}\n\`\`\`\n\n`;
+      } catch { }
+    }
+
+    // Scan directory structure
+    async function scanDir(dir, currentDepth = 0, prefix = "") {
+      if (currentDepth >= depth) return "";
+      let structure = "";
+      try {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
+          structure += `${prefix}${entry.isDirectory() ? "📁" : "📄"} ${entry.name}\n`;
+          if (entry.isDirectory()) {
+            structure += await scanDir(path.join(dir, entry.name), currentDepth + 1, prefix + "  ");
+          }
+        }
+      } catch { }
+      return structure;
+    }
+
+    projectInfo += `### Directory Structure\n\`\`\`\n${await scanDir(projectPath)}\`\`\`\n`;
+
+    return { content: [{ type: "text", text: projectInfo }] };
+  },
+
   read_related_files: async (args) => {
     const maxFiles = args.maxFiles || 10;
     const mainContent = await readFileContent(args.filePath);
