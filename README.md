@@ -141,4 +141,5 @@ We are building the future of AI coding. PRs are welcome!
 
 ## License
 
-MIT © 2024
+MIT © 2026
+
