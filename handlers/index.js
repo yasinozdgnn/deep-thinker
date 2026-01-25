@@ -6,6 +6,7 @@ import { executionHandlers } from './execution.js';
 import { swarmHandlers } from './swarm.js';
 import { memoryHandlers } from './memory.js';
 import { watcherHandlers } from './watcher.js';
+import { projectHandlers } from './project.js';
 
 export const handlers = {
   ...coreHandlers,
@@ -15,5 +16,6 @@ export const handlers = {
   ...executionHandlers,
   ...swarmHandlers,
   ...memoryHandlers,
-  ...watcherHandlers
+  ...watcherHandlers,
+  ...projectHandlers
 };
