@@ -66,7 +66,7 @@ Your silent partner.
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/yasinelbuz/glm-think-mcp.git
+git clone https://github.com/yasinozdgnn/deep-thinker.git
 cd glm-think-mcp
 
 # 2. Install dependencies
@@ -142,4 +142,5 @@ We are building the future of AI coding. PRs are welcome!
 ## License
 
 MIT © 2026
+
 
