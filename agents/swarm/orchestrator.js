@@ -77,9 +77,40 @@ export class SwarmOrchestrator {
                 verified = true;
             } else {
                 this.log(`❌ Sandbox verification FAILED: ${execution.stderr.slice(0, 200)}...`);
-                // Retry logic would go here (omitted for brevity in this step, complex with multiple files)
-                // For now we just log warning.
-                break; 
+                this.log('🔄 Coder is fixing the code...');
+                
+                const fixPrompt = `The previous code failed to execute/compile in the sandbox.
+Error: ${execution.stderr}
+
+Fix the code and return the complete corrected version as a JSON array (same format).
+Previous Code (Main File):
+${mainFile.content}`;
+
+                // Ask Coder to fix
+                const fixedResponse = await this.coder.think({ task: "Fix compilation/runtime error", design: fixPrompt });
+                
+                // Parse fixed JSON
+                try {
+                    const jsonMatch = fixedResponse.match(/\[[\s\S]*\]/);
+                    if (jsonMatch) {
+                        const fixedFiles = JSON.parse(jsonMatch[0]);
+                        
+                        // Overwrite files
+                        for (const f of fixedFiles) {
+                             const safePath = path.isAbsolute(f.fileName) ? f.fileName : path.join(this.projectPath, f.fileName);
+                             await writeFileContent(safePath, f.content);
+                             
+                             // Update local state for next loop verification
+                             const originalFile = codeFiles.find(cf => cf.fileName === f.fileName);
+                             if (originalFile) originalFile.content = f.content;
+                        }
+                        
+                        // Update mainFile reference for next loop
+                        mainFile = codeFiles.find(f => f.fileName === mainFile.fileName) || mainFile;
+                    }
+                } catch (e) {
+                    this.log(`⚠️ Failed to parse fixed code: ${e.message}`);
+                }
             }
              attempts++;
         }
