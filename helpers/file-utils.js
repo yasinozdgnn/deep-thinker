@@ -1,5 +1,36 @@
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
+
+export function validateFilePath(filePath) {
+  if (!filePath) {
+    return {
+      valid: false,
+      error: {
+        content: [{
+          type: "text",
+          text: `ERROR: No file path provided. Please specify a complete file path including the filename and extension (e.g., src/index.ts).`
+        }],
+        isError: true
+      }
+    };
+  }
+
+  if (fsSync.existsSync(filePath) && fsSync.lstatSync(filePath).isDirectory()) {
+    return {
+      valid: false,
+      error: {
+        content: [{
+          type: "text",
+          text: `ERROR: '${filePath}' is a directory path. Please specify a complete file path including the filename and extension (e.g., ${filePath}/index.ts or ${filePath}/main.js).`
+        }],
+        isError: true
+      }
+    };
+  }
+
+  return { valid: true };
+}
 
 export async function readFileContent(filePath) {
   return await fs.readFile(filePath, 'utf-8');

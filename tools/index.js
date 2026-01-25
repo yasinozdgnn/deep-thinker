@@ -9,6 +9,7 @@ import { securityTools } from './security.js';
 import { apiTools } from './api.js';
 import { projectTools } from './project.js';
 import { agentTools } from './agent.js';
+import { architectTools } from './architect.js';
 
 const executionTools = [
   {
@@ -139,7 +140,8 @@ export const tools = [
   ...executionTools,
   ...swarmTools,
   ...memoryTools,
-  ...watcherTools
+  ...watcherTools,
+  ...architectTools
 ];
 
 export {
@@ -157,5 +159,6 @@ export {
   executionTools,
   swarmTools,
   memoryTools,
-  watcherTools
+  watcherTools,
+  architectTools
 };

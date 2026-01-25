@@ -1,139 +1,250 @@
-import { ArchitectAgent, CoderAgent, QAAgent } from './agents.js';
+import { ArchitectAgent } from '../architect/index.js';
+import { CoderAgent, QAAgent } from './agents.js';
 import { SandboxManager } from '../../sandbox/index.js';
-import { extractCodeFromResponse, writeFileContent } from '../../helpers/index.js';
+import { writeFileContent } from '../../helpers/index.js';
 import path from 'path';
 
 export class SwarmOrchestrator {
-  constructor(projectPath) {
+  constructor(projectPath, config = {}) {
     this.projectPath = projectPath;
-    this.architect = new ArchitectAgent();
+    this.architect = new ArchitectAgent({
+      useLayeredAnalysis: true,
+      autoSaveArchitectureDoc: true
+    });
     this.coder = new CoderAgent();
     this.qa = new QAAgent();
     this.sandbox = new SandboxManager();
     this.history = [];
+    this.config = {
+      requireApproval: false,
+      maxRetries: 3,
+      ...config
+    };
+    this.currentBlueprint = null;
   }
 
   async runSwarm(task) {
     this.log('🚀 Swarm started for task: ' + task);
 
-    // 1. Architect Phase
-    this.log('🏗️ Architect is designing...');
-    const design = await this.architect.think({ task, projectContext: this.projectPath });
-    this.history.push({ role: 'architect', content: design });
+    const blueprint = await this.architectPhase(task);
     
-    // 2. Coder Phase (with Sandbox Verification)
-    this.log('👨‍💻 Coder is implementing...');
-    let coderResponse = await this.coder.think({ task, design });
-    let codeFiles = [];
-
-    // Parse JSON
-    try {
-        const jsonMatch = coderResponse.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-            codeFiles = JSON.parse(jsonMatch[0]);
-        } else {
-             // Fallback if model fails to output JSON (simplified)
-            codeFiles = [{ fileName: 'output.js', content: coderResponse }];
-        }
-    } catch (e) {
-        this.log(`⚠️ Failed to parse coder JSON: ${e.message}`);
+    if (this.config.requireApproval) {
+      this.log('⏳ Waiting for approval...');
     }
 
-    // Save Files to Disk
-    this.log(`💾 Saving ${codeFiles.length} generated files...`);
-    for (const file of codeFiles) {
-        try {
-            // Ensure path is sanitized
-            const safePath = path.isAbsolute(file.fileName) 
-                ? file.fileName 
-                : path.join(this.projectPath, file.fileName);
-            
-            await writeFileContent(safePath, file.content);
-            this.log(`✅ Written: ${file.fileName}`);
-        } catch (err) {
-            this.log(`❌ Failed to write ${file.fileName}: ${err.message}`);
-        }
-    }
-
-    // Attempt verification loop (max 3 retries)
-    // For now, we verify the primary/first file logic or script if applicable
-    // In a real system, we would run a proper test suite.
-    // Here we maintain the sandbox check for the "main" file logic if it looks executable.
+    const codeFiles = await this.coderPhase(blueprint);
     
-    let mainFile = codeFiles.find(f => f.fileName.endsWith('.js') || f.fileName.endsWith('.ts') || f.fileName.endsWith('.php')) || codeFiles[0];
+    await this.verificationPhase(codeFiles);
     
-    if (mainFile) {
-        let verified = false;
-        let attempts = 0;
-        
-        while (!verified && attempts < 3) {
-            const lang = mainFile.fileName.endsWith('.php') ? 'php' : 'javascript';
-            
-            this.log(`📦 Verifying ${mainFile.fileName} in Sandbox...`);
-            const execution = await this.sandbox.execute(mainFile.content, lang);
-            
-            if (execution.success) {
-                this.log('✅ Sandbox verification PASSED.');
-                verified = true;
-            } else {
-                this.log(`❌ Sandbox verification FAILED: ${execution.stderr.slice(0, 200)}...`);
-                this.log('🔄 Coder is fixing the code...');
-                
-                const fixPrompt = `The previous code failed to execute/compile in the sandbox.
-Error: ${execution.stderr}
-
-Fix the code and return the complete corrected version as a JSON array (same format).
-Previous Code (Main File):
-${mainFile.content}`;
-
-                // Ask Coder to fix
-                const fixedResponse = await this.coder.think({ task: "Fix compilation/runtime error", design: fixPrompt });
-                
-                // Parse fixed JSON
-                try {
-                    const jsonMatch = fixedResponse.match(/\[[\s\S]*\]/);
-                    if (jsonMatch) {
-                        const fixedFiles = JSON.parse(jsonMatch[0]);
-                        
-                        // Overwrite files
-                        for (const f of fixedFiles) {
-                             const safePath = path.isAbsolute(f.fileName) ? f.fileName : path.join(this.projectPath, f.fileName);
-                             await writeFileContent(safePath, f.content);
-                             
-                             // Update local state for next loop verification
-                             const originalFile = codeFiles.find(cf => cf.fileName === f.fileName);
-                             if (originalFile) originalFile.content = f.content;
-                        }
-                        
-                        // Update mainFile reference for next loop
-                        mainFile = codeFiles.find(f => f.fileName === mainFile.fileName) || mainFile;
-                    }
-                } catch (e) {
-                    this.log(`⚠️ Failed to parse fixed code: ${e.message}`);
-                }
-            }
-             attempts++;
-        }
-    }
-    
-    this.history.push({ role: 'coder', content: JSON.stringify(codeFiles) });
-
-    // 3. QA Phase
-    this.log('🧪 QA is verifying...');
-    const testReport = await this.qa.think({ code });
-    this.history.push({ role: 'qa', content: testReport });
+    const testReport = await this.qaPhase(codeFiles);
 
     this.log('✅ Swarm finished.');
 
     return {
-      design,
-      code,
+      blueprint,
+      codeFiles,
       testReport,
-      summary: 'Swarm completed all phases.'
+      summary: 'Swarm completed all phases with Blueprint-driven architecture.'
     };
   }
 
+  async architectPhase(task) {
+    this.log('🏗️ Architect is designing with Blueprint...');
+    
+    const blueprint = await this.architect.generateBlueprint(task, {
+      projectPath: this.projectPath
+    });
+    
+    this.currentBlueprint = blueprint;
+    this.history.push({ 
+      role: 'architect', 
+      type: 'blueprint',
+      content: blueprint 
+    });
+
+    this.log(`📐 Blueprint created: ${blueprint.project_name}`);
+    this.log(`   - Tables: ${blueprint.architecture.database?.tables?.length || 0}`);
+    this.log(`   - Endpoints: ${blueprint.architecture.backend?.endpoints?.length || 0}`);
+    this.log(`   - Components: ${blueprint.architecture.frontend?.component_tree?.length || 0}`);
+    this.log(`   - Steps: ${blueprint.execution_steps.length}`);
+
+    return blueprint;
+  }
+
+  async coderPhase(blueprint) {
+    this.log('👨‍💻 Coder is implementing based on Blueprint...');
+    
+    const allCodeFiles = [];
+    
+    const steps = blueprint.execution_steps || [];
+    if (steps.length === 0) {
+      this.log('⚠️ No execution steps found in blueprint. Skipping coding phase.');
+      return [];
+    }
+
+    for (let i = 0; i < steps.length; i++) {
+      const step = steps[i];
+      this.log(`📝 Step ${i + 1}/${steps.length}: ${step}`);
+      
+      const stepContext = this.getStepContext(step, blueprint);
+      const coderResponse = await this.coder.think({ 
+        task: step, 
+        design: JSON.stringify(stepContext, null, 2)
+      });
+      
+      const codeFiles = this.parseCoderResponse(coderResponse);
+      
+      for (const file of codeFiles) {
+        await this.saveFile(file);
+        allCodeFiles.push(file);
+      }
+    }
+    
+    this.history.push({ 
+      role: 'coder', 
+      type: 'implementation',
+      content: allCodeFiles 
+    });
+
+    return allCodeFiles;
+  }
+
+  getStepContext(step, blueprint) {
+    const stepLower = step.toLowerCase();
+    
+    if (stepLower.includes('veritabanı') || stepLower.includes('database') || stepLower.includes('schema')) {
+      return {
+        layer: 'database',
+        config: blueprint.architecture?.database || {},
+        techStack: (blueprint.tech_stack || []).filter(t => 
+          ['prisma', 'typeorm', 'sequelize', 'postgresql', 'mysql', 'mongodb'].some(db => 
+            t.toLowerCase().includes(db)
+          )
+        )
+      };
+    }
+    
+    if (stepLower.includes('backend') || stepLower.includes('api') || stepLower.includes('servis')) {
+      return {
+        layer: 'backend',
+        config: blueprint.architecture?.backend || {},
+        database: blueprint.architecture?.database || {},
+        techStack: (blueprint.tech_stack || []).filter(t => 
+          ['next', 'express', 'fastify', 'node'].some(be => 
+            t.toLowerCase().includes(be)
+          )
+        )
+      };
+    }
+    
+    if (stepLower.includes('frontend') || stepLower.includes('ui') || stepLower.includes('komponent')) {
+      return {
+        layer: 'frontend',
+        config: blueprint.architecture?.frontend || {},
+        techStack: (blueprint.tech_stack || []).filter(t => 
+          ['react', 'next', 'vue', 'tailwind', 'css'].some(fe => 
+            t.toLowerCase().includes(fe)
+          )
+        )
+      };
+    }
+    
+    return {
+      layer: 'general',
+      fullBlueprint: blueprint
+    };
+  }
+
+  parseCoderResponse(response) {
+    try {
+      const jsonMatch = response.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    } catch (e) {
+      this.log(`⚠️ Failed to parse coder JSON: ${e.message}`);
+    }
+    
+    return [{ fileName: 'output.js', content: response }];
+  }
+
+  async saveFile(file) {
+    try {
+      const safePath = path.isAbsolute(file.fileName) 
+        ? file.fileName 
+        : path.join(this.projectPath, file.fileName);
+      
+      await writeFileContent(safePath, file.content);
+      this.log(`✅ Written: ${file.fileName}`);
+    } catch (err) {
+      this.log(`❌ Failed to write ${file.fileName}: ${err.message}`);
+    }
+  }
+
+  async verificationPhase(codeFiles) {
+    const mainFile = codeFiles.find(f => 
+      f.fileName.endsWith('.js') || 
+      f.fileName.endsWith('.ts') || 
+      f.fileName.endsWith('.php')
+    ) || codeFiles[0];
+    
+    if (!mainFile) return;
+
+    let verified = false;
+    let attempts = 0;
+    
+    while (!verified && attempts < this.config.maxRetries) {
+      const lang = mainFile.fileName.endsWith('.php') ? 'php' : 'javascript';
+      
+      this.log(`📦 Verifying ${mainFile.fileName} in Sandbox...`);
+      const execution = await this.sandbox.execute(mainFile.content, lang);
+      
+      if (execution.success) {
+        this.log('✅ Sandbox verification PASSED.');
+        verified = true;
+      } else {
+        this.log(`❌ Sandbox verification FAILED: ${execution.stderr.slice(0, 200)}...`);
+        this.log('🔄 Coder is fixing the code...');
+        
+        const fixedResponse = await this.coder.think({ 
+          task: 'Fix compilation/runtime error', 
+          design: `Error: ${execution.stderr}\n\nPrevious Code:\n${mainFile.content}`
+        });
+        
+        const fixedFiles = this.parseCoderResponse(fixedResponse);
+        for (const f of fixedFiles) {
+          await this.saveFile(f);
+          const original = codeFiles.find(cf => cf.fileName === f.fileName);
+          if (original) original.content = f.content;
+        }
+      }
+      attempts++;
+    }
+  }
+
+  async qaPhase(codeFiles) {
+    this.log('🧪 QA is verifying...');
+    
+    const codeContent = codeFiles.map(f => 
+      `// ${f.fileName}\n${f.content}`
+    ).join('\n\n');
+    
+    const testReport = await this.qa.think({ code: codeContent });
+    this.history.push({ role: 'qa', content: testReport });
+    
+    return testReport;
+  }
+
+  getBlueprint() {
+    return this.currentBlueprint;
+  }
+
+  getHistory() {
+    return this.history;
+  }
+
   log(message) {
-    console.log(`[SWARM] ${message}`);
+    console.error(`[SWARM] ${message}`);
   }
 }
+

@@ -7,6 +7,16 @@ import {
 import fs from "fs/promises";
 import path from "path";
 
+// === GLOBAL ERROR HANDLERS ===
+process.on('uncaughtException', (error) => {
+  console.error('🚨 KRİTİK HATA (Sunucu çalışmaya devam ediyor):', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🚨 Yakalanmayan Promise Hatası:', reason);
+});
+// =============================
+
 import { MemoryManager } from "./memory/index.js";
 import { TaskPlanner } from "./planner/index.js";
 import { ToolOrchestrator, getWorkflow, listWorkflows, WORKFLOWS, RetryManager, ValidationEngine } from "./orchestrator/index.js";

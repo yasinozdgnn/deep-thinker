@@ -6,7 +6,8 @@ export {
   listDirectory, 
   scanProjectStructure,
   readImportantProjectFiles,
-  collectDirectoryFiles 
+  collectDirectoryFiles,
+  validateFilePath
 } from './file-utils.js';
 export { 
   runGitCommand, 

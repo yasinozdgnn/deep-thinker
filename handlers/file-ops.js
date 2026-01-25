@@ -1,16 +1,22 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { readFileContent, writeFileContent, searchFiles } from '../helpers/index.js';
+import { readFileContent, writeFileContent, searchFiles, validateFilePath } from '../helpers/index.js';
 import { callGLM } from '../helpers/index.js';
 import { codeAnalysisHandlers } from './code-analysis.js';
 
 export const fileOpsHandlers = {
   read_file: async (args) => {
+    const validation = validateFilePath(args.filePath);
+    if (!validation.valid) return validation.error;
+    
     const content = await readFileContent(args.filePath);
     return { content: [{ type: "text", text: content }] };
   },
 
   write_file: async (args) => {
+    const validation = validateFilePath(args.filePath);
+    if (!validation.valid) return validation.error;
+    
     await writeFileContent(args.filePath, args.content);
     return {
       content: [{ type: "text", text: `File saved: ${args.filePath}` }],
@@ -82,6 +88,9 @@ export const fileOpsHandlers = {
   },
 
   read_related_files: async (args) => {
+    const validation = validateFilePath(args.filePath);
+    if (!validation.valid) return validation.error;
+    
     const maxFiles = args.maxFiles || 10;
     const mainContent = await readFileContent(args.filePath);
     const dir = path.dirname(args.filePath);

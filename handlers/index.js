@@ -7,6 +7,7 @@ import { swarmHandlers } from './swarm.js';
 import { memoryHandlers } from './memory.js';
 import { watcherHandlers } from './watcher.js';
 import { projectHandlers } from './project.js';
+import { architectHandlers } from './architect.js';
 
 export const handlers = {
   ...coreHandlers,
@@ -17,5 +18,7 @@ export const handlers = {
   ...swarmHandlers,
   ...memoryHandlers,
   ...watcherHandlers,
-  ...projectHandlers
+  ...projectHandlers,
+  ...architectHandlers
 };
+

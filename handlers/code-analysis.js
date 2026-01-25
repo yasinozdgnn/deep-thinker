@@ -1,7 +1,10 @@
-import { callGLM, extractCodeFromResponse, readFileContent, writeFileContent, searchFiles } from '../helpers/index.js';
+import { callGLM, extractCodeFromResponse, readFileContent, writeFileContent, searchFiles, validateFilePath } from '../helpers/index.js';
 
 export const codeAnalysisHandlers = {
   refactor_code: async (args) => {
+    const validation = validateFilePath(args.filePath);
+    if (!validation.valid) return validation.error;
+    
     const code = await readFileContent(args.filePath);
     const prompt = `Refactor this code: ${args.instructions}\n\nCode:\n\`\`\`\n${code}\n\`\`\`\n\nReturn only the refactored code.`;
     const result = await callGLM(prompt);
@@ -18,6 +21,9 @@ export const codeAnalysisHandlers = {
   },
 
   explain_code: async (args) => {
+    const validation = validateFilePath(args.filePath);
+    if (!validation.valid) return validation.error;
+    
     const code = await readFileContent(args.filePath);
     const prompt = `Explain this code in detail:\n\`\`\`\n${code}\n\`\`\``;
     const result = await callGLM(prompt);
@@ -27,6 +33,9 @@ export const codeAnalysisHandlers = {
   },
 
   add_comments: async (args) => {
+    const validation = validateFilePath(args.filePath);
+    if (!validation.valid) return validation.error;
+    
     const code = await readFileContent(args.filePath);
     const prompt = `Add inline comments to this code explaining what each part does:\n\`\`\`\n${code}\n\`\`\`\n\nReturn only the commented code.`;
     const result = await callGLM(prompt);
@@ -43,6 +52,9 @@ export const codeAnalysisHandlers = {
   },
 
   find_bugs: async (args) => {
+    const validation = validateFilePath(args.filePath);
+    if (!validation.valid) return validation.error;
+    
     const code = await readFileContent(args.filePath);
     const autoFix = args.autoFix !== false; // Default to true for auto-fixing
     
@@ -88,6 +100,9 @@ ${code}
   },
 
   fix_bugs: async (args) => {
+    const validation = validateFilePath(args.filePath);
+    if (!validation.valid) return validation.error;
+    
     const code = await readFileContent(args.filePath);
     const specificBug = args.specificBug || "";
     
@@ -136,6 +151,9 @@ ${code}
   },
 
   optimize_code: async (args) => {
+    const validation = validateFilePath(args.filePath);
+    if (!validation.valid) return validation.error;
+    
     const code = await readFileContent(args.filePath);
     const prompt = `Analyze this code for performance issues. Then APPLY all optimizations and return the optimized code.
 

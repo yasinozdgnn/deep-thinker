@@ -99,12 +99,24 @@ Features a modular architecture with specialized handlers:
 | Category       | Tools                                                                |
 | -------------- | -------------------------------------------------------------------- |
 | **Autonomous** | `delegate_to_swarm`, `plan_task`, `auto_detect`                      |
+| **Architect**  | `design_system`, `analyze_architecture`, `visualize_architecture`    |
 | **Memory**     | `index_codebase`, `semantic_search`                                  |
 | **Watcher**    | `start_watcher`, `stop_watcher`, `watcher_status`                    |
 | **Execution**  | `run_in_sandbox`                                                     |
 | **Coding**     | `deep_think_code`, `refactor_code`, `find_bugs` (Auto-Fix)           |
 | **DevOps**     | `generate_dockerfile`, `k8s_manifest`, `terraform_module`            |
 | **DB & Git**   | `analyze_query`, `suggest_indexes`, `pr_review`, `resolve_conflicts` |
+
+---
+
+## 🛡️ Industrial Stability
+
+Built for reliability in production environments:
+
+- **Crash Prevention**: Global error handlers prevent server crashes on critical errors.
+- **Zombie Process Protection**: Replaces `stdout` logs with safe `stderr` channels to keep JSON-RPC connection stable.
+- **Defensive Data Handling**: "Airbag" logic ensures the system keeps running even if agents generate incomplete data.
+- **Path Validation**: Smart validation prevents file system errors before they happen.
 
 ---
 
@@ -142,5 +154,3 @@ We are building the future of AI coding. PRs are welcome!
 ## License
 
 MIT © 2026
-
-
