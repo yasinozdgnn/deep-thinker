@@ -79,6 +79,7 @@ export const fileOpsTools = [
         dirPath: { type: "string", description: "Directory to analyze" },
         extensions: { type: "string", description: "File extensions to include" },
         analysisType: { type: "string", description: "Type: overview, bugs, security, performance, architecture" },
+        autoFix: { type: "boolean", description: "If true, automatically attempts to fix identified issues using specialized tools." },
       },
       required: ["dirPath", "analysisType"],
     },

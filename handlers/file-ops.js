@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { readFileContent, writeFileContent, searchFiles } from '../helpers/index.js';
 import { callGLM } from '../helpers/index.js';
+import { codeAnalysisHandlers } from './code-analysis.js';
 
 export const fileOpsHandlers = {
   read_file: async (args) => {
@@ -162,10 +163,67 @@ export const fileOpsHandlers = {
     const prompt = `${analysisPrompts[analysisType] || analysisPrompts.overview}\n\nCodebase (${fileCount} files):\n\`\`\`\n${allCode}\n\`\`\``;
 
     const result = await callGLM(prompt);
+
+    // AUTO-FIX LOGIC
+    let autoFixReport = "";
+    if (args.autoFix) {
+      const fixPrompt = `Based on the analysis above, identifying which files need fixing.
+      
+      Return a JSON array of objects, where each object has:
+      - "filePath": The full path of the file to fix
+      - "tool": The tool to use ("find_bugs", "security_scan", "optimize_code", or "refactor_code")
+      - "instruction": Specific instruction for the tool
+      
+      Example:
+      [
+        {"filePath": "src/api.js", "tool": "find_bugs", "instruction": "Fix null pointer exception"},
+        {"filePath": "src/utils.js", "tool": "optimize_code", "instruction": "Optimize regex"}
+      ]
+      
+      Analysis Result:
+      ${result}`;
+
+      const fixPlanRaw = await callGLM(fixPrompt);
+      let fixPlan = [];
+      try {
+        const jsonMatch = fixPlanRaw.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+            fixPlan = JSON.parse(jsonMatch[0]);
+        }
+      } catch (e) {
+         autoFixReport = "\n\n⚠️ Failed to parse auto-fix plan.";
+      }
+
+      if (fixPlan.length > 0) {
+        autoFixReport += "\n\n### 🛠️ Auto-Fix Execution Report\n";
+        for (const task of fixPlan) {
+            try {
+                if (codeAnalysisHandlers[task.tool]) {
+                    autoFixReport += `\n**Executing ${task.tool} on ${path.basename(task.filePath)}...**\n`;
+                    const fixResult = await codeAnalysisHandlers[task.tool]({ 
+                        filePath: task.filePath,
+                        autoFix: true,
+                        instructions: task.instruction 
+                    });
+                     // Extract the text content from the result
+                    const fixText = fixResult.content && fixResult.content[0] ? fixResult.content[0].text : "Done.";
+                    autoFixReport += `Result: ${fixText.split('\n')[0]} (See file for details)\n`;
+                } else {
+                    autoFixReport += `\n❌ Tool ${task.tool} not found for ${task.filePath}\n`;
+                }
+            } catch (err) {
+                autoFixReport += `\n❌ Error fixing ${task.filePath}: ${err.message}\n`;
+            }
+        }
+      } else {
+        autoFixReport += "\n\n✅ No critical issues requiring auto-fix were identified.";
+      }
+    }
+
     return {
       content: [{
         type: "text",
-        text: `[Deep Thinking - Directory Analysis: ${analysisType}]\n\nAnalyzed ${fileCount} files in ${args.dirPath}\n\n${result}`
+        text: `[Deep Thinking - Directory Analysis: ${analysisType}]\n\nAnalyzed ${fileCount} files in ${args.dirPath}\n\n${result}${autoFixReport}`
       }]
     };
   }
