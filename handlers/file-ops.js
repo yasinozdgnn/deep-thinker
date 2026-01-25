@@ -228,14 +228,45 @@ export const fileOpsHandlers = {
         for (const file of uniqueFiles) {
             try {
                 const content = await readFileContent(file);
-                const reviewPrompt = `Review the changes made to this file. 
+                
+                // Get valid dependencies (context)
+                let context = "";
+                try {
+                  const dir = path.dirname(file);
+                  const importRegex = /from\s+['"](\..*?)['"]/g; // Simple regex for local imports
+                  let match;
+                  while ((match = importRegex.exec(content)) !== null) {
+                     const relPath = match[1];
+                     // Try to resolve extensions
+                     const exts = ['', '.ts', '.js', '.tsx', '.jsx', '/index.ts', '/index.js'];
+                     for (const ext of exts) {
+                        try {
+                           const depPath = path.resolve(dir, relPath + ext);
+                           if (depPath !== file) {
+                               const depContent = await fs.readFile(depPath, 'utf8');
+                               // Truncate to save context
+                               context += `\n// Imported from ${relPath}:\n${depContent.slice(0, 1000)}\n...`;
+                               break;
+                           }
+                        } catch {}
+                     }
+                  }
+                } catch { }
+
+                const reviewPrompt = `Review the changes made to this file. verify it works with the imports.
                 File: ${file}
-                Current Content:
+                
+                File Content:
                 \`\`\`
                 ${content}
                 \`\`\`
+
+                Related Context (Imports):
+                \`\`\`
+                ${context || "No local imports found."}
+                \`\`\`
                 
-                Did the auto-fix introduce any new syntax errors or logic issues? 
+                Did the auto-fix introduce any new syntax errors, logic issues, or TYPE MISMATCHES with imports? 
                 Briefly confirm if it is clean or warn if issues remain.`;
                 
                 const review = await callGLM(reviewPrompt);
