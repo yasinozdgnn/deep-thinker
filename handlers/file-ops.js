@@ -233,12 +233,29 @@ export const fileOpsHandlers = {
                 let context = "";
                 try {
                   const dir = path.dirname(file);
-                  const importRegex = /from\s+['"](\..*?)['"]/g; // Simple regex for local imports
+                  // Pattern for JS imports matches: from "..."
+                  // Pattern for PHP imports matches: use ...; or require "..." or include "..."
+                  const importRegex = /(?:from\s+['"](\..*?)['"])|(?:(?:require|include)(?:_once)?\s*\(?\s*['"](\..*?)['"]\s*\)?)|(?:use\s+([\\w\\]+)\s*;)/g; 
+                  
                   let match;
                   while ((match = importRegex.exec(content)) !== null) {
-                     const relPath = match[1];
+                     // JS match is group 1, PHP require/include is group 2, PHP use is group 3
+                     let relPath = match[1] || match[2];
+                     const phpClass = match[3];
+
+                     // Logic for PHP Namespace Resolution (simplistic mapping for MVP)
+                     if (phpClass) {
+                        // Convert App\Models\User -> models/User.php (heuristic)
+                        // This often requires knowing PSR-4 config, but we can try common paths
+                        // For now we skip "use" namespaces as they are hard to map to file paths without psr-4 logic
+                        // We focus on relative file includes which are critical for legacy projects
+                        continue; 
+                     }
+                     
+                     if (!relPath) continue;
+
                      // Try to resolve extensions
-                     const exts = ['', '.ts', '.js', '.tsx', '.jsx', '/index.ts', '/index.js'];
+                     const exts = ['', '.ts', '.js', '.tsx', '.jsx', '/index.ts', '/index.js', '.php'];
                      for (const ext of exts) {
                         try {
                            const depPath = path.resolve(dir, relPath + ext);

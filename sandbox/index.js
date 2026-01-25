@@ -77,6 +77,8 @@ export class SandboxManager {
       case 'bash':
       case 'sh':
         return { fileName: 'script.sh', command: 'bash', args: [] };
+      case 'php':
+        return { fileName: 'script.php', command: 'php', args: [] };
       default:
         throw new Error(`Unsupported language: ${language}`);
     }
