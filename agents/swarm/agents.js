@@ -57,7 +57,17 @@ Write clean, distinct, efficient code.
 Task: ${context.task}
 Architect's Design: ${context.design}
 
-Output the implementation code blocks.`;
+Output strict JSON format. 
+Response must be a SINGLE JSON array of objects, where each object represents a file to be created or modified.
+Format:
+[
+  {
+    "fileName": "path/to/file.js",
+    "content": "raw code content here"
+  }
+]
+
+Do NOT wrap the JSON in markdown code blocks. Just return the raw JSON string.`;
   }
 }
 
