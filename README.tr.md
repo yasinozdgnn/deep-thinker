@@ -66,7 +66,7 @@ Sessiz ortağınız.
 
 ```bash
 # 1. Repoyu klonlayın
-git clone https://github.com/yasinelbuz/glm-think-mcp.git
+git clone https://github.com/yasinozdgnn/deep-thinker.git
 cd glm-think-mcp
 
 # 2. Bağımlılıkları yükleyin
@@ -142,4 +142,5 @@ Yapay zeka devriminin bir parçası olun. PR'larınızı bekliyoruz!
 ## Lisans
 
 MIT © 2026
+
 
