@@ -1,5 +1,6 @@
 import { LEARNING_GUARDRAILS } from '../config.js';
 import { MemoryManager } from '../memory/index.js';
+import { classifyError, truncateText, suggestErrorResolution } from '../utils/index.js';
 
 export const ADAPTIVE_LEARNING_CONFIG = {
   learningRate: 0.1,
@@ -338,7 +339,7 @@ export class PatternLearner {
     const patterns = new Map();
     
     for (const failure of failures) {
-      const errorType = this.classifyErrorPattern(failure);
+      const errorType = this.classifyErrorType(failure);
       const patternKey = `${failure.tool}_${errorType}`;
       
       const existing = patterns.get(patternKey) || { 
@@ -398,18 +399,8 @@ export class PatternLearner {
     return parts.join('_');
   }
   
-  classifyErrorPattern(failure) {
-    const message = (failure.error || failure.message || '').toLowerCase();
-    
-    if (message.includes('timeout')) return 'timeout';
-    if (message.includes('permission') || message.includes('access')) return 'permission';
-    if (message.includes('not found') || message.includes('enoent')) return 'not_found';
-    if (message.includes('syntax') || message.includes('parse')) return 'syntax';
-    if (message.includes('network') || message.includes('connection')) return 'network';
-    if (message.includes('rate') || message.includes('limit')) return 'rate_limit';
-    if (message.includes('memory') || message.includes('heap')) return 'memory';
-    
-    return 'unknown';
+  classifyErrorType(failure) {
+    return classifyError(failure.error || failure.message || '');
   }
   
   summarizeContext(context) {
@@ -498,8 +489,8 @@ export class SelfImprovement {
   async learnFromExecution(toolName, input, output, success, executionTime) {
     if (!this.projectPath) return;
     
-    const inputSummary = this.summarize(input);
-    const outputSummary = this.summarize(output);
+    const inputSummary = this.truncate(input);
+    const outputSummary = this.truncate(output);
     
     await this.memory.recordToolExecution(
       toolName,
@@ -517,14 +508,14 @@ export class SelfImprovement {
   
   async analyzeFailure(toolName, input, error) {
     const errorMessage = typeof error === 'string' ? error : error?.message || 'Unknown error';
-    const errorType = this.classifyError(errorMessage);
+    const errorType = this.getErrorType(errorMessage);
     
     await this.memory.recordError(
       toolName,
       errorType,
       errorMessage,
       { input },
-      this.suggestResolution(errorType, errorMessage)
+      this.getResolution(errorType, errorMessage)
     );
     
     const successRate = await this.memory.getToolSuccessRate(toolName);
@@ -534,33 +525,12 @@ export class SelfImprovement {
     }
   }
   
-  classifyError(errorMessage) {
-    const lowerMessage = errorMessage.toLowerCase();
-    
-    if (lowerMessage.includes('timeout')) return 'timeout';
-    if (lowerMessage.includes('permission') || lowerMessage.includes('access denied')) return 'permission';
-    if (lowerMessage.includes('not found') || lowerMessage.includes('enoent')) return 'file_not_found';
-    if (lowerMessage.includes('syntax')) return 'syntax_error';
-    if (lowerMessage.includes('network') || lowerMessage.includes('connection')) return 'network';
-    if (lowerMessage.includes('memory') || lowerMessage.includes('heap')) return 'memory';
-    if (lowerMessage.includes('api') || lowerMessage.includes('rate limit')) return 'api_error';
-    
-    return 'unknown';
+  getErrorType(errorMessage) {
+    return classifyError(errorMessage);
   }
   
-  suggestResolution(errorType, errorMessage) {
-    const resolutions = {
-      timeout: 'Increase timeout or break task into smaller chunks',
-      permission: 'Check file/directory permissions',
-      file_not_found: 'Verify file path exists before operation',
-      syntax_error: 'Review code syntax and structure',
-      network: 'Check network connectivity or retry later',
-      memory: 'Reduce batch size or optimize memory usage',
-      api_error: 'Check API limits or credentials',
-      unknown: 'Review error details and context'
-    };
-    
-    return resolutions[errorType] || resolutions.unknown;
+  getResolution(errorType, errorMessage) {
+    return suggestErrorResolution(errorType);
   }
   
   flagToolForReview(toolName, successRate) {
@@ -661,7 +631,7 @@ export class SelfImprovement {
             errorType,
             count,
             message: `${errorType} errors occurred ${count} times recently`,
-            recommendation: this.suggestResolution(errorType, '')
+            recommendation: this.getResolution(errorType, '')
           });
         }
       }
@@ -742,14 +712,14 @@ export class SelfImprovement {
       return { retry: false, reason: 'Maximum retry attempts reached' };
     }
     
-    const errorType = this.classifyError(error?.message || error);
+    const errorType = this.getErrorType(error?.message || error);
     
     const noRetryErrors = ['permission', 'file_not_found', 'syntax_error'];
     if (noRetryErrors.includes(errorType)) {
       return { 
         retry: false, 
         reason: `Error type ${errorType} is not retryable`,
-        suggestion: this.suggestResolution(errorType, error?.message || error)
+        suggestion: this.getResolution(errorType, error?.message || error)
       };
     }
     
@@ -765,13 +735,8 @@ export class SelfImprovement {
     return { retry: false, reason: 'Unknown error type' };
   }
   
-  summarize(data, maxLength = 100) {
-    if (data === null || data === undefined) return '';
-    if (typeof data === 'string') {
-      return data.length > maxLength ? data.substring(0, maxLength) + '...' : data;
-    }
-    const str = JSON.stringify(data);
-    return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
+  truncate(data, maxLength = 100) {
+    return truncateText(data, maxLength);
   }
   
   resetSession() {

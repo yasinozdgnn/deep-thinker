@@ -1,5 +1,6 @@
 import { generateUUID, ORCHESTRATION_CONFIG } from '../config.js';
 import { MemoryManager } from '../memory/index.js';
+import { sleep, calculateBackoff, summarizeResult, shouldRetryError } from '../utils/index.js';
 
 export const AGENT_CONFIG = {
   maxParallelAgents: 5,
@@ -81,12 +82,13 @@ export class MiniAgent {
       } catch (error) {
         lastError = error;
         
-        if (!this.shouldRetry(error, attempt)) {
+        const shouldRetry = this.shouldRetry(error, attempt);
+        if (!shouldRetry) {
           throw error;
         }
         
-        const delay = this.calculateBackoff(attempt);
-        await this.sleep(delay);
+        const delay = this.getBackoffDelay(attempt);
+        await sleep(delay);
       }
     }
     
@@ -112,33 +114,12 @@ export class MiniAgent {
   
   shouldRetry(error, attempt) {
     if (attempt >= this.config.maxRetries) return false;
-    
-    const retryablePatterns = [
-      /timeout/i,
-      /network/i,
-      /connection/i,
-      /rate.?limit/i,
-      /temporarily/i,
-      /try.?again/i,
-      /service.?unavailable/i,
-      /503/,
-      /502/,
-      /504/
-    ];
-    
-    const errorMessage = error.message || '';
-    return retryablePatterns.some(p => p.test(errorMessage));
+    const result = shouldRetryError(error, attempt, this.config.maxRetries);
+    return result.retry;
   }
   
-  calculateBackoff(attempt) {
-    const baseDelay = this.config.retryDelay;
-    const exponentialDelay = baseDelay * Math.pow(2, attempt);
-    const jitter = Math.random() * 0.2 * exponentialDelay;
-    return Math.min(exponentialDelay + jitter, 30000);
-  }
-  
-  sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  getBackoffDelay(attempt) {
+    return calculateBackoff(attempt, { baseDelay: this.config.retryDelay });
   }
   
   cancel() {
@@ -196,7 +177,7 @@ export class AgentPool {
     const executeNext = async () => {
       while (this.taskQueue.length > 0 && this.isRunning) {
         if (this.activeCount >= this.maxAgents) {
-          await this.sleep(100);
+          await sleep(100);
           continue;
         }
         
@@ -275,9 +256,7 @@ export class AgentPool {
     };
   }
   
-  sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
+
   
   reset() {
     this.stop();
@@ -414,20 +393,13 @@ export class AgentCoordinator {
       })),
       outputs: successful.map(s => ({
         taskId: s.taskId,
-        result: this.summarizeResult(s.result)
+        result: this.summarizeResultText(s.result)
       }))
     };
   }
   
-  summarizeResult(result) {
-    if (typeof result === 'string') {
-      return result.length > 500 ? result.substring(0, 500) + '...' : result;
-    }
-    if (result?.content?.[0]?.text) {
-      const text = result.content[0].text;
-      return text.length > 500 ? text.substring(0, 500) + '...' : text;
-    }
-    return JSON.stringify(result).substring(0, 500);
+  summarizeResultText(result) {
+    return summarizeResult(result, 500);
   }
   
   async recordGroupProgress(executionId, groupIndex, results) {

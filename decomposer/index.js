@@ -1,5 +1,6 @@
 import { generateUUID } from '../config.js';
 import { MemoryManager } from '../memory/index.js';
+import { defaultRegistry } from '../registry/ToolRegistry.js';
 
 export const DECOMPOSITION_CONFIG = {
   maxSubtasks: 10,
@@ -196,27 +197,10 @@ export class TaskDecomposer {
   }
   
   async suggestPrimaryTool(task, context) {
-    const taskLower = task.toLowerCase();
+    const matchedTool = defaultRegistry.findByPattern(task);
     
-    const toolMappings = [
-      { patterns: [/read\s+file/i, /get\s+content/i, /show\s+file/i], tool: 'read_file' },
-      { patterns: [/write\s+file/i, /save\s+to/i, /create\s+file/i], tool: 'write_file' },
-      { patterns: [/refactor/i, /improve\s+code/i, /clean\s+up/i], tool: 'refactor_code' },
-      { patterns: [/find\s+bugs?/i, /debug/i, /issues?/i], tool: 'find_bugs' },
-      { patterns: [/security/i, /vulnerabil/i, /owasp/i], tool: 'security_scan' },
-      { patterns: [/optimi[sz]e/i, /performance/i, /speed\s+up/i], tool: 'optimize_code' },
-      { patterns: [/test/i, /unit\s+test/i, /spec/i], tool: 'generate_tests' },
-      { patterns: [/document/i, /jsdoc/i, /readme/i], tool: 'generate_docs' },
-      { patterns: [/explain/i, /understand/i, /how\s+does/i], tool: 'explain_code' },
-      { patterns: [/search/i, /find\s+in/i, /grep/i], tool: 'search_in_files' },
-      { patterns: [/analy[sz]e\s+directory/i, /scan\s+folder/i], tool: 'analyze_directory' },
-      { patterns: [/project\s+structure/i, /overview/i], tool: 'read_project' }
-    ];
-    
-    for (const { patterns, tool } of toolMappings) {
-      if (patterns.some(p => p.test(taskLower))) {
-        return tool;
-      }
+    if (matchedTool) {
+      return matchedTool;
     }
     
     if (this.projectPath) {

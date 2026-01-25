@@ -1,5 +1,6 @@
 import { ORCHESTRATION_CONFIG, LEARNING_GUARDRAILS, generateUUID } from '../config.js';
 import { MemoryManager } from '../memory/index.js';
+import { sleep, calculateBackoff, classifyError, summarizeResult, shouldRetryError } from '../utils/index.js';
 
 class CircuitBreaker {
   constructor(threshold = 3) {
@@ -107,8 +108,8 @@ export class RetryManager {
           throw error;
         }
         
-        const delay = this.calculateBackoff(attempt);
-        await this.sleep(delay);
+        const delay = this.getBackoffDelay(attempt);
+        await sleep(delay);
       }
     }
     
@@ -117,51 +118,20 @@ export class RetryManager {
   }
   
   shouldRetry(error, attempt) {
-    if (attempt >= this.config.maxRetries) {
-      return { retry: false, reason: 'max_retries_exceeded' };
-    }
-    
-    const errorMessage = (error.message || '').toLowerCase();
-    const errorType = this.classifyError(errorMessage);
-    
-    if (this.config.nonRetryableErrors.includes(errorType)) {
-      return { retry: false, reason: `non_retryable_error_type: ${errorType}` };
-    }
-    
-    if (this.config.retryableErrors.includes(errorType)) {
-      return { retry: true, reason: `retryable_error_type: ${errorType}`, delay: this.calculateBackoff(attempt) };
-    }
-    
-    return { retry: false, reason: 'unknown_error_type' };
-  }
-  
-  classifyError(errorMessage) {
-    const patterns = {
-      timeout: [/timeout/i, /timed?\s*out/i],
-      network: [/network/i, /connection/i, /econnrefused/i, /enotfound/i],
-      rate_limit: [/rate.?limit/i, /too.?many.?requests/i, /429/],
-      service_unavailable: [/503/, /502/, /504/, /service.?unavailable/i],
-      permission: [/permission/i, /access.?denied/i, /forbidden/i, /403/],
-      file_not_found: [/not.?found/i, /enoent/i, /404/],
-      syntax_error: [/syntax/i, /parse.?error/i],
-      validation: [/validation/i, /invalid/i, /schema/i]
+    const result = shouldRetryError(error, attempt, this.config.maxRetries);
+    return {
+      retry: result.retry,
+      reason: result.reason,
+      delay: result.delay
     };
-    
-    for (const [type, regexes] of Object.entries(patterns)) {
-      if (regexes.some(r => r.test(errorMessage))) {
-        return type;
-      }
-    }
-    
-    return 'unknown';
   }
   
-  calculateBackoff(attempt) {
-    const exponentialDelay = this.config.baseDelay * Math.pow(2, attempt);
-    const maxJitter = exponentialDelay * this.config.jitterFactor;
-    const jitter = Math.random() * maxJitter * 2 - maxJitter;
-    const delay = Math.min(exponentialDelay + jitter, this.config.maxDelay);
-    return Math.max(delay, this.config.baseDelay);
+  getBackoffDelay(attempt) {
+    return calculateBackoff(attempt, {
+      baseDelay: this.config.baseDelay,
+      maxDelay: this.config.maxDelay,
+      jitterFactor: this.config.jitterFactor
+    });
   }
   
   recordRetrySuccess(toolName, attempts) {
@@ -187,9 +157,7 @@ export class RetryManager {
     return Object.fromEntries(this.retryHistory);
   }
   
-  sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
+
 }
 
 export class ValidationEngine {
@@ -599,7 +567,7 @@ export class ToolOrchestrator {
       results: results.map(r => ({
         tool: r.tool,
         success: r.success,
-        summary: r.result ? this.summarizeResult(r.result) : null,
+        summary: r.result ? this.summarizeToolResult(r.result) : null,
         error: r.error
       }))
     };
@@ -607,15 +575,8 @@ export class ToolOrchestrator {
     return synthesis;
   }
   
-  summarizeResult(result) {
-    if (typeof result === 'string') {
-      return result.length > 200 ? result.substring(0, 200) + '...' : result;
-    }
-    if (result?.content?.[0]?.text) {
-      const text = result.content[0].text;
-      return text.length > 200 ? text.substring(0, 200) + '...' : text;
-    }
-    return JSON.stringify(result).substring(0, 200);
+  summarizeToolResult(result) {
+    return summarizeResult(result, 200);
   }
   
   resetCircuitBreaker(toolName = null) {
