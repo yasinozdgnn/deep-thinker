@@ -218,6 +218,31 @@ export const fileOpsHandlers = {
       } else {
         autoFixReport += "\n\n✅ No critical issues requiring auto-fix were identified.";
       }
+
+      // FINAL CODE REVIEW
+      if (fixPlan.length > 0) {
+        autoFixReport += "\n\n### 🧐 Final Code Review\n";
+        const modifiedFiles = fixPlan.map(t => t.filePath);
+        const uniqueFiles = [...new Set(modifiedFiles)];
+        
+        for (const file of uniqueFiles) {
+            try {
+                const content = await readFileContent(file);
+                const reviewPrompt = `Review the changes made to this file. 
+                File: ${file}
+                Current Content:
+                \`\`\`
+                ${content}
+                \`\`\`
+                
+                Did the auto-fix introduce any new syntax errors or logic issues? 
+                Briefly confirm if it is clean or warn if issues remain.`;
+                
+                const review = await callGLM(reviewPrompt);
+                autoFixReport += `\n**${path.basename(file)}**: ${review}\n`;
+            } catch {}
+        }
+      }
     }
 
     return {
