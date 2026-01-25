@@ -141,4 +141,5 @@ Yapay zeka devriminin bir parçası olun. PR'larınızı bekliyoruz!
 
 ## Lisans
 
-MIT © 2024
+MIT © 2026
+
