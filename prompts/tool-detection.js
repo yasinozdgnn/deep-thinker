@@ -1,82 +1,94 @@
-export const TOOL_LIST = `=== CORE TOOLS (3) ===
+export const TOOL_LIST = `=== AUTONOMOUS AGENTS (4) ===
+53. delegate_to_swarm - Multi-agent system for complex feature implementation
+54. plan_task - Create an execution plan for a complex task
+55. execute_plan - Execute a plan step-by-step
+56. decompose_task - Break down complex task into subtasks
+
+=== ARCHITECT TOOLS (3) ===
+57. design_system - Design full system architecture (Blueprint)
+58. analyze_architecture - Analyze existing project architecture
+59. visualize_architecture - Generate architecture diagrams (Mermaid)
+
+=== CORE TOOLS (3) ===
 1. deep_think_chat - Complex coding questions
 2. deep_think_verbose - Deep thinking with visible reasoning
 3. deep_think_code - Generate code and save to file
 
-=== FILE OPERATIONS (4) ===
+=== FILE OPERATIONS (5) ===
 4. read_file - Read file contents
 5. write_file - Write content to file
 6. list_directory - List files in directory
 7. search_in_files - Search for pattern in files
+8. read_related_files - Read multiple related files intelligently
 
 === CODE ANALYSIS (6) ===
-8. refactor_code - Refactor code and save
-9. explain_code - Generate detailed explanation
-10. add_comments - Add inline comments
-11. find_bugs - Analyze code for bugs
-12. optimize_code - Performance optimizations
-13. find_references - Find symbol usages
+9. refactor_code - Refactor code and save
+10. explain_code - Generate detailed explanation
+11. add_comments - Add inline comments
+12. find_bugs - Analyze code for bugs
+13. optimize_code - Performance optimizations
+14. find_references - Find symbol usages
 
 === GIT OPERATIONS (2) ===
-14. git_diff_explain - Explain git diff
-15. generate_commit_message - Generate commit message
+15. git_diff_explain - Explain git diff
+16. generate_commit_message - Generate commit message
 
 === TEST & DOCUMENTATION (3) ===
-16. generate_tests - Generate unit tests
-17. generate_docs - Generate JSDoc/TSDoc
-18. create_readme - Generate README.md
+17. generate_tests - Generate unit tests
+18. generate_docs - Generate JSDoc/TSDoc
+19. create_readme - Generate README.md
 
 === PROJECT MANAGEMENT (2) ===
-19. create_project - Create boilerplate project
-20. add_dependency - Add dependency
+20. create_project - Create boilerplate project
+21. add_dependency - Add dependency
 
 === DATABASE TOOLS (4) ===
-21. analyze_query - SQL query performance analysis, N+1 detection
-22. explain_schema - Database schema documentation, ER diagrams
-23. suggest_indexes - Optimal index recommendations
-24. review_migration - Migration safety review
+22. analyze_query - SQL query performance analysis, N+1 detection
+23. explain_schema - Database schema documentation, ER diagrams
+24. suggest_indexes - Optimal index recommendations
+25. review_migration - Migration safety review
 
 === GIT ADVANCED TOOLS (4) ===
-25. resolve_conflicts - Git conflict resolution
-26. branch_analyzer - Branch strategy and merging
-27. pr_review - Pull request review
-28. git_history - Commit history analysis
+26. resolve_conflicts - Git conflict resolution
+27. branch_analyzer - Branch strategy and merging
+28. pr_review - Pull request review
+29. git_history - Commit history analysis
 
 === CI/CD & DEVOPS TOOLS (4) ===
-29. generate_dockerfile - Optimized Dockerfile (multi-stage)
-30. generate_github_actions - CI/CD workflow
-31. k8s_manifest - Kubernetes manifests
-32. terraform_module - Terraform modules
+30. generate_dockerfile - Optimized Dockerfile (multi-stage)
+31. generate_github_actions - CI/CD workflow
+32. k8s_manifest - Kubernetes manifests
+33. terraform_module - Terraform modules
 
 === TEST ADVANCED TOOLS (4) ===
-33. generate_e2e_tests - Playwright/Cypress E2E tests
-34. test_coverage_analysis - Test coverage gaps
-35. mock_generator - API mocks (MSW, Nock)
-36. load_test_script - Load testing (k6, artillery)
+34. generate_e2e_tests - Playwright/Cypress E2E tests
+35. test_coverage_analysis - Test coverage gaps
+36. mock_generator - API mocks (MSW, Nock)
+37. load_test_script - Load testing (k6, artillery)
 
 === SECURITY & SAST TOOLS (4) ===
-37. security_scan - OWASP Top 10 security scan
-38. dependency_audit - Vulnerability detection
-39. secrets_scanner - Hardcoded secrets detection
-40. api_security - API endpoint security analysis
+38. security_scan - OWASP Top 10 security scan
+39. dependency_audit - Vulnerability detection
+40. secrets_scanner - Hardcoded secrets detection
+41. api_security - API endpoint security analysis
 
 === PERFORMANCE & OPTIMIZATION TOOLS (4) ===
-41. bundle_analysis - Bundle size analysis
-42. memory_leak_detect - Memory leak detection
-43. api_response_time - API performance benchmark
-44. caching_strategy - Caching recommendations
+42. bundle_analysis - Bundle size analysis
+43. memory_leak_detect - Memory leak detection
+44. api_response_time - API performance benchmark
+45. caching_strategy - Caching recommendations
 
 === API & DOCUMENTATION TOOLS (4) ===
-45. openapi_spec - OpenAPI/Swagger specification
-46. api_client_generator - API client code
-47. graphql_schema - GraphQL schema design
-48. api_migration - REST to GraphQL migration
+46. openapi_spec - OpenAPI/Swagger specification
+47. api_client_generator - API client code
+48. graphql_schema - GraphQL schema design
+49. api_migration - REST to GraphQL migration
 
 === PROJECT STRATEGY TOOLS (4) ===
-49. architecture_review - Architecture review
-50. tech_stack_migration - Tech stack migration guide
-51. scaling_strategy - Scaling strategy
-52. cost_optimization - Cloud cost optimization`;
+50. architecture_review - Architecture review
+51. tech_stack_migration - Tech stack migration guide
+52. scaling_strategy - Scaling strategy
+53. cost_optimization - Cloud cost optimization`;
 
 export const CODE_QUALITY_REQUIREMENTS = `CODE QUALITY REQUIREMENTS (All generated code MUST follow):
 - DRY (Don't Repeat Yourself): Reuse existing functions, avoid code duplication

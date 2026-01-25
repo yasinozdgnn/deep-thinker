@@ -334,3 +334,6 @@ export class TaskPlanner {
     return this.currentPlan;
   }
 }
+
+// Export singleton instance for state persistence
+export const taskPlanner = new TaskPlanner();

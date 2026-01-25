@@ -472,3 +472,6 @@ Return ONLY the JSON array, no other text.
     this.decompositionCache.clear();
   }
 }
+
+// Export singleton instance for state persistence
+export const taskDecomposer = new TaskDecomposer();

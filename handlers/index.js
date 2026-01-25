@@ -8,6 +8,7 @@ import { memoryHandlers } from './memory.js';
 import { watcherHandlers } from './watcher.js';
 import { projectHandlers } from './project.js';
 import { architectHandlers } from './architect.js';
+import { agentHandlers } from './agent.js';
 
 export const handlers = {
   ...coreHandlers,
@@ -19,6 +20,7 @@ export const handlers = {
   ...memoryHandlers,
   ...watcherHandlers,
   ...projectHandlers,
-  ...architectHandlers
+  ...architectHandlers,
+  ...agentHandlers
 };
 
