@@ -10,7 +10,7 @@ import { apiTools } from './api.js';
 import { projectTools } from './project.js';
 import { agentTools } from './agent.js';
 
-export const executionTools = [
+const executionTools = [
   {
     name: "run_in_sandbox",
     description: "Safely execute a code snippet in an isolated sandbox environment. Supported languages: javascript, python, bash, typescript.",
@@ -37,7 +37,7 @@ export const executionTools = [
   }
 ];
 
-export const swarmTools = [
+const swarmTools = [
   {
     name: "delegate_to_swarm",
     description: "Delegate a complex task to a swarm of specialized AI agents (Architect, Coder, QA). Best for full feature implementation.",
@@ -58,7 +58,7 @@ export const swarmTools = [
   }
 ];
 
-export const memoryTools = [
+const memoryTools = [
   {
     name: "index_codebase",
     description: "Scan the project and build a semantic memory index (summaries + tags) for the codebase. Run this periodically or after major changes.",
@@ -92,7 +92,7 @@ export const memoryTools = [
   }
 ];
 
-export const watcherTools = [
+const watcherTools = [
   {
     name: "start_watcher",
     description: "Start the Proactive File Watcher. It will monitor the project for changes and trigger auto-actions (like syntax checks) in the background.",
