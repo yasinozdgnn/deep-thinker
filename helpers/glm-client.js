@@ -28,7 +28,7 @@ export async function callGLMRaw(prompt, useSystemPrompt = true) {
       payload,
       {
         headers: { Authorization: `Bearer ${GLM_API_KEY}` },
-        timeout: 60000 // 60s timeout
+        timeout: 0 // No timeout
       },
     );
     return response.data;

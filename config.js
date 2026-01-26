@@ -21,7 +21,7 @@ export const LEARNING_GUARDRAILS = {
 
 export const ORCHESTRATION_CONFIG = {
   maxParallelTools: 3,
-  toolTimeout: 120000,
+  toolTimeout: 3600000,
   maxRetries: 2,
   circuitBreakerThreshold: 3,
   dependencyResolutionTimeout: 10000,
