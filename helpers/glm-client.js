@@ -35,7 +35,7 @@ export async function callGLMRaw(prompt, useSystemPrompt = true) {
       payload,
       {
         headers: { Authorization: `Bearer ${GLM_API_KEY}` },
-        timeout: 300000 // 300s timeout (5 mins) for Deep Thinking
+        timeout: 0 // No timeout (Deep Thinking can take a long time)
       },
     );
 

@@ -253,6 +253,7 @@ export class ArchitectAgent {
   }
 
   generateArchitectureMarkdown(blueprint) {
+    const { project_name, tech_stack, architecture, execution_steps, metadata } = blueprint;
     const safeTechStack = Array.isArray(tech_stack) ? tech_stack : [];
 
     let doc = `# ${project_name} - Architecture Documentation
