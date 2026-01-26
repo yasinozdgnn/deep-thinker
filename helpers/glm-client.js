@@ -18,43 +18,77 @@ export async function callGLMRaw(prompt, useSystemPrompt = true) {
 
   messages.push({ role: 'user', content: prompt });
 
-  console.error(`[GLM] Sending request to ${GLM_MODEL}... (Prompt length: ${prompt.length})`);
+  const safePrompt = prompt || '';
+  console.error(`[GLM] Sending request to ${GLM_MODEL}... (Prompt length: ${safePrompt.length})`);
   const startTime = Date.now();
+  const MAX_RETRIES = 3;
 
-  try {
-    const payload = {
-      model: GLM_MODEL,
-      messages,
-      // Note: In GLM-4.7, Thinking is activated by default on coding endpoints.
-      // Explicitly sending "thinking": { "type": "enabled" } might cause 400 errors 
-      // if the endpoint is already in thinking mode.
-    };
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const payload = {
+        model: GLM_MODEL,
+        messages,
+        // Note: In GLM-4.7, Thinking is activated by default on coding endpoints.
+        // Explicitly sending "thinking": { "type": "enabled" } might cause 400 errors 
+        // if the endpoint is already in thinking mode.
+      };
 
-    const response = await axios.post(
-      GLM_API_URL,
-      payload,
-      {
-        headers: { Authorization: `Bearer ${GLM_API_KEY}` },
-        timeout: 0 // No timeout (Deep Thinking can take a long time)
-      },
-    );
+      const response = await axios.post(
+        GLM_API_URL,
+        payload,
+        {
+          headers: { Authorization: `Bearer ${GLM_API_KEY}` },
+          timeout: 0 // No timeout (Deep Thinking can take a long time)
+        },
+      );
 
-    console.error(`[GLM] Response received in ${(Date.now() - startTime) / 1000}s`);
-    return response.data;
-  } catch (error) {
-    const duration = (Date.now() - startTime) / 1000;
-    if (error.response) {
-      console.error(`🔴 GLM API Error (${error.response.status}) after ${duration}s:`, {
-        data: error.response.data,
-        requestId: error.response.headers['x-request-id']
-      });
-      throw new Error(`GLM API Error (${error.response.status}): ${JSON.stringify(error.response.data)}`);
-    } else if (error.code === 'ECONNABORTED') {
-      console.error(`🔴 GLM API Timeout after ${duration}s`);
-      throw new Error(`GLM API Timeout after ${duration}s`);
+      console.error(`[GLM] Response received in ${(Date.now() - startTime) / 1000}s`);
+      return response.data;
+    } catch (error) {
+      const duration = (Date.now() - startTime) / 1000;
+
+      // Determine if we should retry
+      let shouldRetry = false;
+      let errorType = 'Unknown Error';
+
+      if (error.response) {
+        // Retry on Server Errors (5xx)
+        if (error.response.status >= 500 && error.response.status < 600) {
+          shouldRetry = true;
+          errorType = `Server Error (${error.response.status})`;
+        } else {
+          errorType = `Client Error (${error.response.status}) - ${JSON.stringify(error.response.data)}`;
+        }
+      } else if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+        shouldRetry = true;
+        errorType = 'Timeout';
+      } else if (error.code === 'ECONNRESET') {
+        shouldRetry = true;
+        errorType = 'Connection Reset';
+      } else {
+        errorType = error.message;
+      }
+
+      console.error(`🔴 GLM Attempt ${attempt}/${MAX_RETRIES} Failed (${errorType}) after ${duration}s`);
+
+      if (shouldRetry && attempt < MAX_RETRIES) {
+        const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s...
+        console.error(`🔄 Retrying in ${delay / 1000}s...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+
+      // If we're here, we exhausted retries or it's non-retryable
+      if (error.response) {
+        console.error('🔴 GLM API Final Fail:', {
+          status: error.response.status,
+          data: error.response.data,
+          requestId: error.response.headers['x-request-id']
+        });
+        throw new Error(`GLM API Error (${error.response.status}): ${JSON.stringify(error.response.data)}`);
+      }
+      throw error;
     }
-    console.error(`🔴 GLM Network Error after ${duration}s: ${error.message}`);
-    throw error;
   }
 }
 

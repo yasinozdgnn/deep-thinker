@@ -19,7 +19,7 @@ export class BaseAgent {
   }
 
   log(message) {
-    console.log(`[${this.role.toUpperCase()}] ${this.name}: ${message}`);
+    console.error(`[${this.role.toUpperCase()}] ${this.name}: ${message}`);
   }
 }
 

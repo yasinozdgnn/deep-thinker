@@ -3,6 +3,7 @@ import { CoderAgent, QAAgent } from './agents.js';
 import { SandboxManager } from '../../sandbox/index.js';
 import { writeFileContent } from '../../helpers/index.js';
 import path from 'path';
+import fs from 'fs/promises';
 
 export class SwarmOrchestrator {
   constructor(projectPath, config = {}) {
@@ -156,8 +157,16 @@ export class SwarmOrchestrator {
   }
 
   parseCoderResponse(response) {
+    if (!response || typeof response !== 'string') {
+      this.log('⚠️ Coder returned empty or invalid response.');
+      return [];
+    }
+
     try {
-      const jsonMatch = response.match(/\[[\s\S]*\]/);
+      // Clean potential markdown or extra text
+      const clean = response.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```$/, '');
+      const jsonMatch = clean.match(/\[[\s\S]*\]/);
+
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
       }
