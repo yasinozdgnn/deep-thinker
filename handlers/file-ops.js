@@ -6,20 +6,24 @@ import { codeAnalysisHandlers } from './code-analysis.js';
 
 export const fileOpsHandlers = {
   read_file: async (args) => {
-    const validation = validateFilePath(args.filePath);
+    const path = args.filePath || args.AbsolutePath || args.TargetFile;
+    const validation = validateFilePath(path);
     if (!validation.valid) return validation.error;
     
-    const content = await readFileContent(args.filePath);
+    const content = await readFileContent(path);
     return { content: [{ type: "text", text: content }] };
   },
 
   write_file: async (args) => {
-    const validation = validateFilePath(args.filePath);
+    const path = args.filePath || args.TargetFile || args.AbsolutePath;
+    const content = args.content || args.CodeContent || args.content;
+    
+    const validation = validateFilePath(path);
     if (!validation.valid) return validation.error;
     
-    await writeFileContent(args.filePath, args.content);
+    await writeFileContent(path, content);
     return {
-      content: [{ type: "text", text: `File saved: ${args.filePath}` }],
+      content: [{ type: "text", text: `File saved: ${path}` }],
     };
   },
 

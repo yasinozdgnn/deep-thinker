@@ -3,6 +3,12 @@ import { taskDecomposer } from '../decomposer/index.js';
 import { listWorkflows, getWorkflow } from '../orchestrator/index.js';
 import { callGLM, extractCodeFromResponse } from '../helpers/index.js'; // Added extractCodeFromResponse
 
+let toolExecutor = null;
+
+export const setToolExecutor = (executor) => {
+  toolExecutor = executor;
+};
+
 export const agentHandlers = {
   plan_task: async (args) => {
     taskPlanner.setProject(args.projectPath || process.cwd());
@@ -97,13 +103,46 @@ Response Format:
     // Mark started
     await taskPlanner.markStepStarted();
 
-    // In a full implementation, we would execute the tool here.
-    // Since we don't have direct access to tool execution engine from this handler yet,
-    // we return the instruction to the user/agent.
+    let executionResult = null;
+    let autoExecuted = false;
+
+    // AUTOMATION: If executor is available, run the tool
+    if (toolExecutor) {
+        try {
+            agentHandlers.log(`🚀 Auto-executing step ${currentStep.id}: ${currentStep.tool}`);
+            executionResult = await toolExecutor(currentStep.tool, currentStep.args, true);
+            autoExecuted = true;
+            
+            // Mark completed if successful
+            if (!executionResult.isError) {
+                await taskPlanner.markStepCompleted(null, executionResult);
+            } else {
+                await taskPlanner.markStepFailed(null, executionResult.content[0].text);
+            }
+        } catch (error) {
+            executionResult = { 
+                content: [{ type: "text", text: `❌ Auto-execution failed: ${error.message}` }],
+                isError: true 
+            };
+            await taskPlanner.markStepFailed(null, error.message);
+        }
+    }
+
+    if (autoExecuted) {
+        return {
+            content: [
+                { type: "text", text: `🤖 **Step ${currentStep.id} Auto-Executed**\n\nTool: \`${currentStep.tool}\`\nStatus: ${executionResult.isError ? '❌ Failed' : '✅ Success'}\n\n--- Result ---\n${executionResult.content[0].text}` }
+            ]
+        };
+    }
     
     return { 
-        content: [{ type: "text", text: `▶️ **Executing Step ${currentStep.id}**\n\nTool: \`${currentStep.tool}\`\nArgs: \`${JSON.stringify(currentStep.args)}\`\n\nTo proceed, please execute this tool manually/autonomously.` }] 
+        content: [{ type: "text", text: `▶️ **Executing Step ${currentStep.id}**\n\nTool: \`${currentStep.tool}\`\nArgs: \`${JSON.stringify(currentStep.args)}\`\n\n(No automatic executor found. Please run this tool manually.)` }] 
     };
+  },
+  
+  log: (msg) => {
+    console.error(`[AGENT] ${msg}`);
   },
 
   decompose_task: async (args) => {

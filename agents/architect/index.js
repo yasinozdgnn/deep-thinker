@@ -1,4 +1,4 @@
-import { callGLM } from '../../helpers/index.js';
+import { callGLM, extractCodeFromResponse } from '../../helpers/index.js';
 import { 
   createEmptyBlueprint, 
   validateBlueprint, 
@@ -106,9 +106,9 @@ export class ArchitectAgent {
 
     const prompt = buildArchitectPrompt(userTask, JSON.stringify(projectContext));
     const response = await callGLM(prompt);
-    
+
     let blueprint = this.parseJSONResponse(response, 'full');
-    
+
     if (!blueprint || !blueprint.project_name) {
       const projectName = this.extractProjectName(userTask) || 'New Project';
       blueprint = createEmptyBlueprint(projectName);
@@ -120,18 +120,38 @@ export class ArchitectAgent {
 
   parseJSONResponse(response, expectedType = 'full') {
     try {
+      // First try standard extraction (handles markdown code blocks)
+      const extracted = extractCodeFromResponse(response);
+
+      if (extracted) {
+        try {
+          const parsed = JSON.parse(extracted);
+           if (expectedType === 'database' && parsed.database) return parsed.database;
+           if (expectedType === 'backend' && parsed.backend) return parsed.backend;
+           if (expectedType === 'frontend' && parsed.frontend) return parsed.frontend;
+           return parsed;
+        } catch (e) {
+             // Continue to fallback
+        }
+      }
+
+      // Fallback: Regex matching
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
-        
+
         if (expectedType === 'database' && parsed.database) return parsed.database;
         if (expectedType === 'backend' && parsed.backend) return parsed.backend;
         if (expectedType === 'frontend' && parsed.frontend) return parsed.frontend;
-        
+
         return parsed;
       }
     } catch (e) {
       this.log(`⚠️ JSON parse error: ${e.message}`);
+      // Return empty structures if parsing failed but expectedType implies specific part
+      if (expectedType === 'database') return { tables: [] };
+      if (expectedType === 'backend') return { services: [], endpoints: [] };
+      if (expectedType === 'frontend') return { component_tree: [], routes: [] };
     }
     return null;
   }
@@ -213,7 +233,7 @@ export class ArchitectAgent {
   }
 
   generateArchitectureMarkdown(blueprint) {
-    const { project_name, tech_stack, architecture, execution_steps, metadata } = blueprint;
+    const safeTechStack = Array.isArray(tech_stack) ? tech_stack : []; 
 
     let doc = `# ${project_name} - Architecture Documentation
 
@@ -222,7 +242,7 @@ export class ArchitectAgent {
 
 ## Tech Stack
 
-${tech_stack.map(t => `- ${t}`).join('\n')}
+${safeTechStack.map(t => `- ${t}`).join('\n')}
 
 ---
 

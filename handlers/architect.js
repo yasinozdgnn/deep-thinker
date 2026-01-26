@@ -14,7 +14,8 @@ function getArchitect(projectPath = null) {
 }
 
 export async function handleDesignSystem(args) {
-  const { projectPath, requirements, techStackPreference } = args;
+  const { projectPath, requirements: req, description, goal, techStackPreference } = args;
+  const requirements = req || description || goal;
 
   if (!requirements) {
     return {

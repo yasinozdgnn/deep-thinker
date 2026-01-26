@@ -14,18 +14,35 @@ export async function callGLMRaw(prompt, useSystemPrompt = true) {
 
   messages.push({ role: 'user', content: prompt });
 
-  const response = await axios.post(
-    GLM_API_URL,
-    {
+  try {
+    const payload = {
       model: GLM_MODEL,
       messages,
-      thinking: { type: 'enabled' },
-    },
-    {
-      headers: { Authorization: `Bearer ${GLM_API_KEY}` },
-    },
-  );
-  return response.data;
+      // Note: In GLM-4.7, Thinking is activated by default on coding endpoints.
+      // Explicitly sending "thinking": { "type": "enabled" } might cause 400 errors 
+      // if the endpoint is already in thinking mode.
+    };
+
+    const response = await axios.post(
+      GLM_API_URL,
+      payload,
+      {
+        headers: { Authorization: `Bearer ${GLM_API_KEY}` },
+        timeout: 60000 // 60s timeout
+      },
+    );
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      console.error('🔴 GLM API 400/Error Response:', {
+        status: error.response.status,
+        data: error.response.data,
+        requestId: error.response.headers['x-request-id']
+      });
+      throw new Error(`GLM API Error (${error.response.status}): ${JSON.stringify(error.response.data)}`);
+    }
+    throw error;
+  }
 }
 
 export async function callGLM(prompt) {

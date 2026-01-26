@@ -1,6 +1,7 @@
 import { generateUUID } from '../config.js';
 import { MemoryManager } from '../memory/index.js';
 import { CHECKPOINT_CONFIG, LEARNING_GUARDRAILS } from '../config.js';
+import path from 'node:path';
 
 export class TaskPlanner {
   constructor(projectPath = null) {
@@ -15,6 +16,9 @@ export class TaskPlanner {
   }
   
   async createPlan(goal, context = {}) {
+    if (this.projectPath) {
+      await this.memory.registerProject({ name: path.basename(this.projectPath) });
+    }
     const planId = generateUUID();
     
     const plan = {
