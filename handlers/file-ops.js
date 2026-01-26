@@ -3,27 +3,43 @@ import path from 'path';
 import { readFileContent, writeFileContent, searchFiles, validateFilePath } from '../helpers/index.js';
 import { callGLM } from '../helpers/index.js';
 import { codeAnalysisHandlers } from './code-analysis.js';
+import { ProjectState } from './state.js';
 
 export const fileOpsHandlers = {
   read_file: async (args) => {
-    const path = args.filePath || args.AbsolutePath || args.TargetFile;
-    const validation = validateFilePath(path);
+    const filePath = args.filePath || args.AbsolutePath || args.TargetFile;
+    if (!filePath) {
+      return { content: [{ type: "text", text: "❌ Error: Missing 'filePath' argument." }], isError: true };
+    }
+
+    const validation = validateFilePath(filePath);
     if (!validation.valid) return validation.error;
-    
-    const content = await readFileContent(path);
+
+    const content = await readFileContent(filePath);
     return { content: [{ type: "text", text: content }] };
   },
 
   write_file: async (args) => {
-    const path = args.filePath || args.TargetFile || args.AbsolutePath;
+    if (!ProjectState.isReady()) {
+      return {
+        content: [{ type: "text", text: "🔒 **Security Restriction**: You must index the project first.\n\nPlease run the `read_project` tool to scan the codebase structure before making any changes." }],
+        isError: true
+      };
+    }
+
+    const filePath = args.filePath || args.TargetFile || args.AbsolutePath;
     const content = args.content || args.CodeContent || args.content;
-    
-    const validation = validateFilePath(path);
+
+    if (!filePath) {
+      return { content: [{ type: "text", text: "❌ Error: Missing 'filePath' argument." }], isError: true };
+    }
+
+    const validation = validateFilePath(filePath);
     if (!validation.valid) return validation.error;
-    
-    await writeFileContent(path, content);
+
+    await writeFileContent(filePath, content);
     return {
-      content: [{ type: "text", text: `File saved: ${path}` }],
+      content: [{ type: "text", text: `File saved: ${filePath}` }],
     };
   },
 
@@ -86,7 +102,11 @@ export const fileOpsHandlers = {
       return structure;
     }
 
+
     projectInfo += `### Directory Structure\n\`\`\`\n${await scanDir(projectPath)}\`\`\`\n`;
+
+    // Mark project as indexed
+    ProjectState.setIndexed(true);
 
     return { content: [{ type: "text", text: projectInfo }] };
   },
@@ -94,7 +114,7 @@ export const fileOpsHandlers = {
   read_related_files: async (args) => {
     const validation = validateFilePath(args.filePath);
     if (!validation.valid) return validation.error;
-    
+
     const maxFiles = args.maxFiles || 10;
     const mainContent = await readFileContent(args.filePath);
     const dir = path.dirname(args.filePath);
@@ -201,32 +221,32 @@ export const fileOpsHandlers = {
       try {
         const jsonMatch = fixPlanRaw.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
-            fixPlan = JSON.parse(jsonMatch[0]);
+          fixPlan = JSON.parse(jsonMatch[0]);
         }
       } catch (e) {
-         autoFixReport = "\n\n⚠️ Failed to parse auto-fix plan.";
+        autoFixReport = "\n\n⚠️ Failed to parse auto-fix plan.";
       }
 
       if (fixPlan.length > 0) {
         autoFixReport += "\n\n### 🛠️ Auto-Fix Execution Report\n";
         for (const task of fixPlan) {
-            try {
-                if (codeAnalysisHandlers[task.tool]) {
-                    autoFixReport += `\n**Executing ${task.tool} on ${path.basename(task.filePath)}...**\n`;
-                    const fixResult = await codeAnalysisHandlers[task.tool]({ 
-                        filePath: task.filePath,
-                        autoFix: true,
-                        instructions: task.instruction 
-                    });
-                     // Extract the text content from the result
-                    const fixText = fixResult.content && fixResult.content[0] ? fixResult.content[0].text : "Done.";
-                    autoFixReport += `Result: ${fixText.split('\n')[0]} (See file for details)\n`;
-                } else {
-                    autoFixReport += `\n❌ Tool ${task.tool} not found for ${task.filePath}\n`;
-                }
-            } catch (err) {
-                autoFixReport += `\n❌ Error fixing ${task.filePath}: ${err.message}\n`;
+          try {
+            if (codeAnalysisHandlers[task.tool]) {
+              autoFixReport += `\n**Executing ${task.tool} on ${path.basename(task.filePath)}...**\n`;
+              const fixResult = await codeAnalysisHandlers[task.tool]({
+                filePath: task.filePath,
+                autoFix: true,
+                instructions: task.instruction
+              });
+              // Extract the text content from the result
+              const fixText = fixResult.content && fixResult.content[0] ? fixResult.content[0].text : "Done.";
+              autoFixReport += `Result: ${fixText.split('\n')[0]} (See file for details)\n`;
+            } else {
+              autoFixReport += `\n❌ Tool ${task.tool} not found for ${task.filePath}\n`;
             }
+          } catch (err) {
+            autoFixReport += `\n❌ Error fixing ${task.filePath}: ${err.message}\n`;
+          }
         }
       } else {
         autoFixReport += "\n\n✅ No critical issues requiring auto-fix were identified.";
@@ -237,53 +257,53 @@ export const fileOpsHandlers = {
         autoFixReport += "\n\n### 🧐 Final Code Review\n";
         const modifiedFiles = fixPlan.map(t => t.filePath);
         const uniqueFiles = [...new Set(modifiedFiles)];
-        
+
         for (const file of uniqueFiles) {
+          try {
+            const content = await readFileContent(file);
+
+            // Get valid dependencies (context)
+            let context = "";
             try {
-                const content = await readFileContent(file);
-                
-                // Get valid dependencies (context)
-                let context = "";
-                try {
-                  const dir = path.dirname(file);
-                  // Pattern for JS imports matches: from "..."
-                  // Pattern for PHP imports matches: use ...; or require "..." or include "..."
-                  const importRegex = /(?:from\s+['"](\..*?)['"])|(?:(?:require|include)(?:_once)?\s*\(?\s*['"](\..*?)['"]\s*\)?)|(?:use\s+([\\w\\]+)\s*;)/g; 
-                  
-                  let match;
-                  while ((match = importRegex.exec(content)) !== null) {
-                     // JS match is group 1, PHP require/include is group 2, PHP use is group 3
-                     let relPath = match[1] || match[2];
-                     const phpClass = match[3];
+              const dir = path.dirname(file);
+              // Pattern for JS imports matches: from "..."
+              // Pattern for PHP imports matches: use ...; or require "..." or include "..."
+              const importRegex = /(?:from\s+['"](\..*?)['"])|(?:(?:require|include)(?:_once)?\s*\(?\s*['"](\..*?)['"]\s*\)?)|(?:use\s+([\\w\\]+)\s*;)/g;
 
-                     // Logic for PHP Namespace Resolution (simplistic mapping for MVP)
-                     if (phpClass) {
-                        // Convert App\Models\User -> models/User.php (heuristic)
-                        // This often requires knowing PSR-4 config, but we can try common paths
-                        // For now we skip "use" namespaces as they are hard to map to file paths without psr-4 logic
-                        // We focus on relative file includes which are critical for legacy projects
-                        continue; 
-                     }
-                     
-                     if (!relPath) continue;
+              let match;
+              while ((match = importRegex.exec(content)) !== null) {
+                // JS match is group 1, PHP require/include is group 2, PHP use is group 3
+                let relPath = match[1] || match[2];
+                const phpClass = match[3];
 
-                     // Try to resolve extensions
-                     const exts = ['', '.ts', '.js', '.tsx', '.jsx', '/index.ts', '/index.js', '.php'];
-                     for (const ext of exts) {
-                        try {
-                           const depPath = path.resolve(dir, relPath + ext);
-                           if (depPath !== file) {
-                               const depContent = await fs.readFile(depPath, 'utf8');
-                               // Truncate to save context
-                               context += `\n// Imported from ${relPath}:\n${depContent.slice(0, 1000)}\n...`;
-                               break;
-                           }
-                        } catch {}
-                     }
-                  }
-                } catch { }
+                // Logic for PHP Namespace Resolution (simplistic mapping for MVP)
+                if (phpClass) {
+                  // Convert App\Models\User -> models/User.php (heuristic)
+                  // This often requires knowing PSR-4 config, but we can try common paths
+                  // For now we skip "use" namespaces as they are hard to map to file paths without psr-4 logic
+                  // We focus on relative file includes which are critical for legacy projects
+                  continue;
+                }
 
-                const reviewPrompt = `Review the changes made to this file. verify it works with the imports.
+                if (!relPath) continue;
+
+                // Try to resolve extensions
+                const exts = ['', '.ts', '.js', '.tsx', '.jsx', '/index.ts', '/index.js', '.php'];
+                for (const ext of exts) {
+                  try {
+                    const depPath = path.resolve(dir, relPath + ext);
+                    if (depPath !== file) {
+                      const depContent = await fs.readFile(depPath, 'utf8');
+                      // Truncate to save context
+                      context += `\n// Imported from ${relPath}:\n${depContent.slice(0, 1000)}\n...`;
+                      break;
+                    }
+                  } catch { }
+                }
+              }
+            } catch { }
+
+            const reviewPrompt = `Review the changes made to this file. verify it works with the imports.
                 File: ${file}
                 
                 File Content:
@@ -298,10 +318,10 @@ export const fileOpsHandlers = {
                 
                 Did the auto-fix introduce any new syntax errors, logic issues, or TYPE MISMATCHES with imports? 
                 Briefly confirm if it is clean or warn if issues remain.`;
-                
-                const review = await callGLM(reviewPrompt);
-                autoFixReport += `\n**${path.basename(file)}**: ${review}\n`;
-            } catch {}
+
+            const review = await callGLM(reviewPrompt);
+            autoFixReport += `\n**${path.basename(file)}**: ${review}\n`;
+          } catch { }
         }
       }
     }

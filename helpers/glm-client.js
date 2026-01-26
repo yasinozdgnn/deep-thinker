@@ -24,13 +24,11 @@ export async function callGLMRaw(prompt, useSystemPrompt = true) {
   const MAX_RETRIES = 3;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    let payload;
     try {
-      const payload = {
+      payload = {
         model: GLM_MODEL,
         messages,
-        // Note: In GLM-4.7, Thinking is activated by default on coding endpoints.
-        // Explicitly sending "thinking": { "type": "enabled" } might cause 400 errors 
-        // if the endpoint is already in thinking mode.
       };
 
       const response = await axios.post(
@@ -52,6 +50,11 @@ export async function callGLMRaw(prompt, useSystemPrompt = true) {
       let errorType = 'Unknown Error';
 
       if (error.response) {
+        // Log detailed payload for 400 errors
+        if (error.response.status === 400) {
+          console.error(`🔴 GLM 400 Bad Request. Payload causing error:`, JSON.stringify(payload, null, 2));
+        }
+
         // Retry on Server Errors (5xx)
         if (error.response.status >= 500 && error.response.status < 600) {
           shouldRetry = true;
