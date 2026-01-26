@@ -32,6 +32,18 @@ export class MemoryManager {
     if (!this.project) return null;
     return await this.project.getInfo();
   }
+
+  async recordPlan(plan) {
+    if (this.project) {
+      await this.project.recordPlan(plan);
+    }
+  }
+
+  async updatePlanProgress(planId, status, currentStep) {
+    if (this.project) {
+      await this.project.updatePlanProgress(planId, status, currentStep);
+    }
+  }
   
   async recordToolExecution(toolName, context, success, executionTime, inputSummary = '', outputSummary = '') {
     this.session.addToHistory({

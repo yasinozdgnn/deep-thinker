@@ -88,11 +88,24 @@ function getDatabase() {
       FOREIGN KEY (project_id) REFERENCES projects(id)
     );
     
+    CREATE TABLE IF NOT EXISTS plans (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      goal TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      current_step INTEGER DEFAULT 0,
+      total_steps INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (project_id) REFERENCES projects(id)
+    );
+    
     CREATE INDEX IF NOT EXISTS idx_patterns_project ON patterns(project_id);
     CREATE INDEX IF NOT EXISTS idx_patterns_tool ON patterns(tool_name);
     CREATE INDEX IF NOT EXISTS idx_tool_stats_project ON tool_stats(project_id);
     CREATE INDEX IF NOT EXISTS idx_errors_project ON errors(project_id);
     CREATE INDEX IF NOT EXISTS idx_checkpoints_plan ON checkpoints(plan_id);
+    CREATE INDEX IF NOT EXISTS idx_plans_project ON plans(project_id);
   `);
   
   return db;
@@ -158,6 +171,38 @@ export class ProjectMemory {
       UPDATE projects SET code_style = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
     `);
     stmt.run(JSON.stringify(codeStyle), this.projectId);
+  }
+
+  async recordPlan(plan) {
+    const stmt = this.db.prepare(`
+      INSERT INTO plans (id, project_id, goal, status, current_step, total_steps)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        status = excluded.status,
+        current_step = excluded.current_step,
+        total_steps = excluded.total_steps,
+        updated_at = CURRENT_TIMESTAMP
+    `);
+    
+    stmt.run(
+      plan.id,
+      this.projectId,
+      plan.goal,
+      plan.status,
+      plan.currentStepIndex || 0,
+      plan.steps.length || 0
+    );
+  }
+
+  async updatePlanProgress(planId, status, currentStep) {
+    const stmt = this.db.prepare(`
+      UPDATE plans SET 
+        status = ?, 
+        current_step = ?, 
+        updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ? AND project_id = ?
+    `);
+    stmt.run(status, currentStep, planId, this.projectId);
   }
 }
 

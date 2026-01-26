@@ -37,6 +37,7 @@ export class TaskPlanner {
     
     this.currentPlan = plan;
     this.memory.setActivePlan(plan);
+    await this.memory.recordPlan(plan);
     
     return plan;
   }
@@ -60,6 +61,9 @@ export class TaskPlanner {
     this.currentPlan.steps.push(stepWithId);
     this.currentPlan.updatedAt = new Date().toISOString();
     
+    // Sync with DB to update total_steps count
+    this.memory.recordPlan(this.currentPlan).catch(err => console.error("DB Sync Error:", err));
+    
     return stepWithId;
   }
   
@@ -74,6 +78,7 @@ export class TaskPlanner {
     
     this.currentPlan.status = 'in_progress';
     this.currentPlan.updatedAt = new Date().toISOString();
+    await this.memory.updatePlanProgress(this.currentPlan.id, 'in_progress', this.currentPlan.currentStepIndex);
     
     return this.currentPlan;
   }
@@ -110,6 +115,7 @@ export class TaskPlanner {
     step.result = result;
     step.completedAt = new Date().toISOString();
     this.currentPlan.updatedAt = new Date().toISOString();
+    await this.memory.updatePlanProgress(this.currentPlan.id, this.currentPlan.status, index + 1);
     
     if (this.projectPath) {
       await this.memory.recordToolExecution(
@@ -142,6 +148,7 @@ export class TaskPlanner {
     step.completedAt = new Date().toISOString();
     step.retryCount++;
     this.currentPlan.updatedAt = new Date().toISOString();
+    await this.memory.updatePlanProgress(this.currentPlan.id, 'failed', index);
     
     if (this.projectPath) {
       await this.memory.recordError(
@@ -175,6 +182,7 @@ export class TaskPlanner {
     this.currentPlan.status = 'completed';
     this.currentPlan.completedAt = new Date().toISOString();
     this.currentPlan.updatedAt = new Date().toISOString();
+    await this.memory.updatePlanProgress(this.currentPlan.id, 'completed', this.currentPlan.steps.length);
     
     const plan = { ...this.currentPlan };
     this.memory.clearSessionTask();
