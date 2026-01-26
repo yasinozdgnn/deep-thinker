@@ -72,6 +72,7 @@ Response Format:
     },
 
     execute_plan: async (args) => {
+        // ... existing execute_plan code ...
         // State persistence fix: Use singleton
         let plan = taskPlanner.getPlan();
 
@@ -138,6 +139,64 @@ Response Format:
 
         return {
             content: [{ type: "text", text: `▶️ **Executing Step ${currentStep.id}**\n\nTool: \`${currentStep.tool}\`\nArgs: \`${JSON.stringify(currentStep.args)}\`\n\n(No automatic executor found. Please run this tool manually.)` }]
+        };
+    },
+
+    execute_mission: async (args) => {
+        // Goal: Continuously execute the plan until failure or completion
+        let plan = taskPlanner.getPlan();
+
+        // If no plan, but goal provided, create one
+        if (!plan && args.goal) {
+            await agentHandlers.plan_task({ goal: args.goal, projectPath: args.projectPath });
+            plan = taskPlanner.getPlan();
+        }
+
+        if (!plan) {
+            return { content: [{ type: "text", text: "❌ No plan active and no goal provided to create one." }], isError: true };
+        }
+
+        const maxSteps = args.maxSteps || 20;
+        let stepsExecuted = 0;
+        const results = [];
+
+        agentHandlers.log(`🚀 Starting Autonomous Mission: ${plan.goal}`);
+
+        while (stepsExecuted < maxSteps) {
+            const currentStep = taskPlanner.getCurrentStep();
+
+            if (!currentStep) {
+                return {
+                    content: [{ type: "text", text: `✅ **Mission Completed**\n\nAll steps in the plan have been executed successfully.\n\nSummary:\n${results.map(r => `- ${r.step}: ${r.status}`).join('\n')}` }]
+                };
+            }
+
+            // Execute single step
+            const stepResult = await agentHandlers.execute_plan({ planId: plan.id });
+
+            // Parse result to check for failure
+            const isError = stepResult.isError || stepResult.content[0].text.includes('❌ Failed');
+
+            results.push({
+                step: currentStep.tool,
+                status: isError ? 'Failed' : 'Success',
+                output: stepResult.content[0].text
+            });
+
+            if (isError) {
+                return {
+                    content: [{ type: "text", text: `❌ **Mission Stopped at Step ${currentStep.id}**\n\nTool: ${currentStep.tool}\nReason: Step execution failed.\n\nLast Output:\n${stepResult.content[0].text}` }],
+                    isError: true
+                };
+            }
+
+            stepsExecuted++;
+            // Small delay to prevent tight loops in some environments
+            await new Promise(r => setTimeout(r, 500));
+        }
+
+        return {
+            content: [{ type: "text", text: `⚠️ **Mission Paused (Max Steps Reached)**\n\nExecuted ${stepsExecuted} steps. Call execute_mission again to continue.` }]
         };
     },
 

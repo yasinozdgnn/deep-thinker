@@ -6,6 +6,10 @@ const GLM_API_URL = 'https://api.z.ai/api/coding/paas/v4/chat/completions';
 const GLM_MODEL = 'glm-4.7';
 
 export async function callGLMRaw(prompt, useSystemPrompt = true) {
+  if (!GLM_API_KEY) {
+    throw new Error('GLM_API_KEY environment variable is not set!');
+  }
+
   const messages = [];
 
   if (useSystemPrompt) {
@@ -13,6 +17,9 @@ export async function callGLMRaw(prompt, useSystemPrompt = true) {
   }
 
   messages.push({ role: 'user', content: prompt });
+
+  console.error(`[GLM] Sending request to ${GLM_MODEL}... (Prompt length: ${prompt.length})`);
+  const startTime = Date.now();
 
   try {
     const payload = {
@@ -28,19 +35,25 @@ export async function callGLMRaw(prompt, useSystemPrompt = true) {
       payload,
       {
         headers: { Authorization: `Bearer ${GLM_API_KEY}` },
-        timeout: 0 // No timeout
+        timeout: 300000 // 300s timeout (5 mins) for Deep Thinking
       },
     );
+
+    console.error(`[GLM] Response received in ${(Date.now() - startTime) / 1000}s`);
     return response.data;
   } catch (error) {
+    const duration = (Date.now() - startTime) / 1000;
     if (error.response) {
-      console.error('🔴 GLM API 400/Error Response:', {
-        status: error.response.status,
+      console.error(`🔴 GLM API Error (${error.response.status}) after ${duration}s:`, {
         data: error.response.data,
         requestId: error.response.headers['x-request-id']
       });
       throw new Error(`GLM API Error (${error.response.status}): ${JSON.stringify(error.response.data)}`);
+    } else if (error.code === 'ECONNABORTED') {
+      console.error(`🔴 GLM API Timeout after ${duration}s`);
+      throw new Error(`GLM API Timeout after ${duration}s`);
     }
+    console.error(`🔴 GLM Network Error after ${duration}s: ${error.message}`);
     throw error;
   }
 }

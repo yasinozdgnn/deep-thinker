@@ -1,13 +1,13 @@
 export const TOOL_LIST = `=== AUTONOMOUS AGENTS (4) ===
-53. delegate_to_swarm - Multi-agent system for complex feature implementation
-54. plan_task - Create an execution plan for a complex task
-55. execute_plan - Execute a plan step-by-step
-56. decompose_task - Break down complex task into subtasks
+2. delegate_to_swarm - **SUPER TOOL**: Autonomous E2E Build. Plan -> Architect -> Code -> Verify -> QA. Use this for "Build X", "Create App", "Make Website".
+3. plan_task - Create a granular execution plan for a task (without auto-execution)
+4. execute_mission - **AUTOPILOT**: Execute a planned task loop until completion. Use this to run a plan automatically.
+5. decompose_task - Break down complex task into subtasks
 
 === ARCHITECT TOOLS (3) ===
-57. design_system - Design full system architecture (Blueprint)
-58. analyze_architecture - Analyze existing project architecture
-59. visualize_architecture - Generate architecture diagrams (Mermaid)
+6. design_system - Design specific system architecture (Blueprint) - Use 'delegate_to_swarm' instead for full builds!
+7. analyze_architecture - Analyze existing project architecture
+8. visualize_architecture - Generate architecture diagrams (Mermaid)
 
 === CORE TOOLS (3) ===
 1. deep_think_chat - Complex coding questions

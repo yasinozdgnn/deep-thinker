@@ -8,6 +8,21 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
+import dotenv from 'dotenv';
+
+// Only load .env if API key is missing (e.g. local test without MCP config)
+// And suppress stdout because dotenv v17+ prints noisy logs that break MCP JSON-RPC
+if (!process.env.GLM_API_KEY) {
+  const originalStdoutWrite = process.stdout.write;
+  process.stdout.write = () => true; // Mute stdout
+  try {
+    dotenv.config();
+  } catch (e) {
+    // Ignore error
+  } finally {
+    process.stdout.write = originalStdoutWrite; // Restore stdout
+  }
+}
 
 const execAsync = promisify(exec);
 
@@ -63,7 +78,7 @@ function getAgentModules(projectPath) {
   if (!projectPath) {
     projectPath = process.cwd();
   }
-  
+
   if (currentProjectPath !== projectPath) {
     // Clean up old modules if switching projects
     activeMemory = null;
@@ -91,10 +106,10 @@ function getAgentModules(projectPath) {
     activeRetryManager = new RetryManager();
     activeValidationEngine = new ValidationEngine();
   }
-  return { 
-    memory: activeMemory, 
-    planner: activePlanner, 
-    orchestrator: activeOrchestrator, 
+  return {
+    memory: activeMemory,
+    planner: activePlanner,
+    orchestrator: activeOrchestrator,
     learning: activeLearning,
     decomposer: activeDecomposer,
     coordinator: activeCoordinator,
@@ -418,9 +433,9 @@ async function executeToolLogic(name, args, isInternal = false) {
       const result = await callGLM(prompt);
       const k8sDir = path.join(args.projectPath, "k8s");
       await fs.mkdir(k8sDir, { recursive: true });
-      
+
       // Extract YAML blocks and write them to files
-            const yamlBlocks = result.match(/```yaml[\s\S]*?```/g);
+      const yamlBlocks = result.match(/```yaml[\s\S]*?```/g);
       if (yamlBlocks) {
         for (let i = 0; i < yamlBlocks.length; i++) {
           const content = extractCodeFromResponse(yamlBlocks[i]);
