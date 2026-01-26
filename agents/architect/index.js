@@ -1,8 +1,8 @@
 import { callGLM, extractCodeFromResponse } from '../../helpers/index.js';
-import { 
-  createEmptyBlueprint, 
-  validateBlueprint, 
-  mergeBlueprints 
+import {
+  createEmptyBlueprint,
+  validateBlueprint,
+  mergeBlueprints
 } from '../../types/blueprint.js';
 import {
   generateERDiagram,
@@ -11,11 +11,11 @@ import {
   generateArchitectureDiagram,
   generateEndpointDiagram
 } from '../../types/mermaid.js';
-import { 
-  buildArchitectPrompt, 
-  buildLayerPrompt, 
+import {
+  buildArchitectPrompt,
+  buildLayerPrompt,
   buildMergePrompt,
-  ARCHITECT_SYSTEM_PROMPT 
+  ARCHITECT_SYSTEM_PROMPT
 } from './prompts.js';
 import fs from 'fs/promises';
 import path from 'path';
@@ -76,9 +76,9 @@ export class ArchitectAgent {
     const logicLayer = this.parseJSONResponse(logicLayerResponse, 'backend');
 
     this.log('  🖼️ Presentation layer analysis...');
-    const presentationLayerPrompt = buildLayerPrompt('presentation', userTask, { 
-      database: dataLayer, 
-      backend: logicLayer 
+    const presentationLayerPrompt = buildLayerPrompt('presentation', userTask, {
+      database: dataLayer,
+      backend: logicLayer
     });
     const presentationLayerResponse = await callGLM(presentationLayerPrompt);
     const presentationLayer = this.parseJSONResponse(presentationLayerResponse, 'frontend');
@@ -86,9 +86,9 @@ export class ArchitectAgent {
     const projectName = this.extractProjectName(userTask) || 'New Project';
     const mergePrompt = buildMergePrompt(dataLayer, logicLayer, presentationLayer, projectName);
     const mergedResponse = await callGLM(mergePrompt);
-    
+
     let blueprint = this.parseJSONResponse(mergedResponse, 'full');
-    
+
     if (!blueprint || !blueprint.project_name) {
       blueprint = createEmptyBlueprint(projectName);
       blueprint.architecture.database = dataLayer;
@@ -126,12 +126,12 @@ export class ArchitectAgent {
       if (extracted) {
         try {
           const parsed = JSON.parse(extracted);
-           if (expectedType === 'database' && parsed.database) return parsed.database;
-           if (expectedType === 'backend' && parsed.backend) return parsed.backend;
-           if (expectedType === 'frontend' && parsed.frontend) return parsed.frontend;
-           return parsed;
+          if (expectedType === 'database' && parsed.database) return parsed.database;
+          if (expectedType === 'backend' && parsed.backend) return parsed.backend;
+          if (expectedType === 'frontend' && parsed.frontend) return parsed.frontend;
+          return parsed;
         } catch (e) {
-             // Continue to fallback
+          // Continue to fallback
         }
       }
 
@@ -174,7 +174,7 @@ export class ArchitectAgent {
 
   generateDefaultSteps(blueprint) {
     const steps = [];
-    
+
     if (blueprint.architecture.database?.tables?.length > 0) {
       steps.push('1. Create and migrate database schema');
       steps.push('2. Add seed data (if needed)');
@@ -202,19 +202,39 @@ export class ArchitectAgent {
   fixBlueprint(blueprint, errors) {
     const fixed = { ...blueprint };
 
-    for (const error of errors) {
-      if (error.includes('project_name')) {
-        fixed.project_name = fixed.project_name || 'Untitled Project';
+    // Ensure project_name is a string
+    if (!fixed.project_name || typeof fixed.project_name !== 'string') {
+      fixed.project_name = this.extractProjectName(JSON.stringify(blueprint)) || 'Untitled Project';
+    }
+
+    // Ensure tech_stack is an array
+    if (!Array.isArray(fixed.tech_stack)) {
+      // If it's a string, try to split it or make it a single-item array
+      if (typeof fixed.tech_stack === 'string') {
+        fixed.tech_stack = fixed.tech_stack.split(',').map(s => s.trim());
+      } else {
+        fixed.tech_stack = this.config.defaultTechStack;
       }
-      if (error.includes('tech_stack')) {
-        fixed.tech_stack = fixed.tech_stack || this.config.defaultTechStack;
+    }
+
+    // Ensure architecture is an object
+    if (!fixed.architecture || typeof fixed.architecture !== 'object' || Array.isArray(fixed.architecture)) {
+      fixed.architecture = createEmptyBlueprint().architecture;
+    }
+
+    // Ensure execution_steps is an array
+    if (!Array.isArray(fixed.execution_steps)) {
+      if (typeof fixed.execution_steps === 'string') {
+        // Try to split logic if it looks like a list
+        fixed.execution_steps = fixed.execution_steps.split('\n').filter(s => s.trim().length > 0);
+      } else {
+        fixed.execution_steps = this.generateDefaultSteps(fixed);
       }
-      if (error.includes('architecture')) {
-        fixed.architecture = fixed.architecture || createEmptyBlueprint().architecture;
-      }
-      if (error.includes('execution_steps')) {
-        fixed.execution_steps = fixed.execution_steps || this.generateDefaultSteps(fixed);
-      }
+    }
+
+    // Fallback if still empty after fix attempts
+    if (fixed.execution_steps.length === 0) {
+      fixed.execution_steps = this.generateDefaultSteps(fixed);
     }
 
     return fixed;
@@ -223,7 +243,7 @@ export class ArchitectAgent {
   async saveArchitectureDoc(blueprint, projectPath) {
     const doc = this.generateArchitectureMarkdown(blueprint);
     const docPath = path.join(projectPath, 'ARCHITECTURE.md');
-    
+
     try {
       await fs.writeFile(docPath, doc, 'utf-8');
       this.log(`📄 ARCHITECTURE.md saved: ${docPath}`);
@@ -233,7 +253,7 @@ export class ArchitectAgent {
   }
 
   generateArchitectureMarkdown(blueprint) {
-    const safeTechStack = Array.isArray(tech_stack) ? tech_stack : []; 
+    const safeTechStack = Array.isArray(tech_stack) ? tech_stack : [];
 
     let doc = `# ${project_name} - Architecture Documentation
 
@@ -341,7 +361,7 @@ ${safeSteps.map((step, i) => `${i + 1}. ${step.replace(/^\d+\.\s*/, '')}`).join(
     if (!this.currentBlueprint) return null;
 
     const { project_name, tech_stack, architecture, execution_steps } = this.currentBlueprint;
-    
+
     return {
       name: project_name,
       stack: tech_stack.join(', '),
