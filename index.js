@@ -12,7 +12,7 @@ import dotenv from 'dotenv';
 
 // Only load .env if API key is missing (e.g. local test without MCP config)
 // And suppress stdout because dotenv v17+ prints noisy logs that break MCP JSON-RPC
-if (!process.env.GLM_API_KEY) {
+if (!process.env.OPENROUTER_API_KEY) {
   const originalStdoutWrite = process.stdout.write;
   process.stdout.write = () => true; // Mute stdout
   try {

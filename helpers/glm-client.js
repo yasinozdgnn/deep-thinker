@@ -1,13 +1,13 @@
 import axios from 'axios';
 import { DEEP_THINKING_SYSTEM_PROMPT } from '../prompts/index.js';
 
-const GLM_API_KEY = process.env.GLM_API_KEY;
-const GLM_API_URL = 'https://api.z.ai/api/coding/paas/v4/chat/completions';
-const GLM_MODEL = 'glm-4.7';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const MODEL = 'openrouter/free';
 
 export async function callGLMRaw(prompt, useSystemPrompt = true) {
-  if (!GLM_API_KEY) {
-    throw new Error('GLM_API_KEY environment variable is not set!');
+  if (!OPENROUTER_API_KEY) {
+    throw new Error('OPENROUTER_API_KEY environment variable is not set!');
   }
 
   const messages = [];
@@ -19,7 +19,7 @@ export async function callGLMRaw(prompt, useSystemPrompt = true) {
   messages.push({ role: 'user', content: prompt });
 
   const safePrompt = prompt || '';
-  console.error(`[GLM] Sending request to ${GLM_MODEL}... (Prompt length: ${safePrompt.length})`);
+  console.error(`[OpenRouter] Sending request to ${MODEL}... (Prompt length: ${safePrompt.length})`);
   const startTime = Date.now();
   const MAX_RETRIES = 3;
 
@@ -27,20 +27,27 @@ export async function callGLMRaw(prompt, useSystemPrompt = true) {
     let payload;
     try {
       payload = {
-        model: GLM_MODEL,
+        model: MODEL,
         messages,
+        reasoning: {
+          enabled: true
+        }
       };
 
       const response = await axios.post(
-        GLM_API_URL,
+        OPENROUTER_API_URL,
         payload,
         {
-          headers: { Authorization: `Bearer ${GLM_API_KEY}` },
+          headers: { 
+            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+            'X-Title': 'Deep Thinker MCP',
+            'HTTP-Referer': 'https://github.com/yasinozdgnn/deep-thinker'
+          },
           timeout: 0 // No timeout (Deep Thinking can take a long time)
         },
       );
 
-      console.error(`[GLM] Response received in ${(Date.now() - startTime) / 1000}s`);
+      console.error(`[OpenRouter] Response received in ${(Date.now() - startTime) / 1000}s`);
       return response.data;
     } catch (error) {
       const duration = (Date.now() - startTime) / 1000;
@@ -52,7 +59,7 @@ export async function callGLMRaw(prompt, useSystemPrompt = true) {
       if (error.response) {
         // Log detailed payload for 400 errors
         if (error.response.status === 400) {
-          console.error(`🔴 GLM 400 Bad Request. Payload causing error:`, JSON.stringify(payload, null, 2));
+          console.error(`🔴 OpenRouter 400 Bad Request. Payload causing error:`, JSON.stringify(payload, null, 2));
         }
 
         // Retry on Server Errors (5xx)
@@ -72,7 +79,7 @@ export async function callGLMRaw(prompt, useSystemPrompt = true) {
         errorType = error.message;
       }
 
-      console.error(`🔴 GLM Attempt ${attempt}/${MAX_RETRIES} Failed (${errorType}) after ${duration}s`);
+      console.error(`🔴 OpenRouter Attempt ${attempt}/${MAX_RETRIES} Failed (${errorType}) after ${duration}s`);
 
       if (shouldRetry && attempt < MAX_RETRIES) {
         const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s...
@@ -83,12 +90,12 @@ export async function callGLMRaw(prompt, useSystemPrompt = true) {
 
       // If we're here, we exhausted retries or it's non-retryable
       if (error.response) {
-        console.error('🔴 GLM API Final Fail:', {
+        console.error('🔴 OpenRouter API Final Fail:', {
           status: error.response.status,
           data: error.response.data,
           requestId: error.response.headers['x-request-id']
         });
-        throw new Error(`GLM API Error (${error.response.status}): ${JSON.stringify(error.response.data)}`);
+        throw new Error(`OpenRouter API Error (${error.response.status}): ${JSON.stringify(error.response.data)}`);
       }
       throw error;
     }
@@ -109,7 +116,9 @@ export async function callGLMWithThinking(prompt) {
     message.thinking_content ||
     message.reasoning ||
     message.thinking ||
-    null;
+    (Array.isArray(message.choices?.[0]?.message?.reasoning) 
+      ? message.choices[0].message.reasoning.map(r => r.text).join('') 
+      : (message.reasoning?.text || null));
 
   const content = message.content;
 

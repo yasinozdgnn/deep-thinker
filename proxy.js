@@ -1,7 +1,8 @@
 import http from "http";
 import https from "https";
 
-const GLM_API_KEY = process.env.GLM_API_KEY;
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const PORT = process.env.PROXY_PORT || 3456;
 
 const server = http.createServer((req, res) => {
@@ -23,13 +24,15 @@ const server = http.createServer((req, res) => {
 
     req.on("end", () => {
         try {
+            const remoteUrl = new URL(OPENROUTER_API_URL);
             const incomingData = JSON.parse(body);
 
             console.log("\n--- Incoming Request ---");
             console.log(JSON.stringify(incomingData, null, 2));
 
             const requestData = {
-                model: "glm-4.7",
+                model: "openrouter/free",
+                reasoning: { enabled: true },
                 messages: incomingData.messages || [],
                 thinking: { type: "enabled" }
             };
@@ -44,20 +47,22 @@ const server = http.createServer((req, res) => {
                 requestData.stream = incomingData.stream;
             }
 
-            console.log("\n--- Outgoing Request to GLM ---");
+            console.log("\n--- Outgoing Request to OpenRouter ---");
             console.log(JSON.stringify(requestData, null, 2));
 
             const postData = JSON.stringify(requestData);
 
             const options = {
-                hostname: "api.z.ai",
+                hostname: remoteUrl.hostname,
                 port: 443,
-                path: "/api/coding/paas/v4/chat/completions",
+                path: remoteUrl.pathname,
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "Content-Length": Buffer.byteLength(postData),
-                    Authorization: `Bearer ${GLM_API_KEY}`,
+                    "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+                    "X-Title": "Deep Thinker MCP",
+                    "HTTP-Referer": "https://github.com/yasinozdgnn/deep-thinker"
                 },
             };
 
@@ -81,6 +86,6 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-    console.log(`GLM Deep Thinking Proxy running on http://localhost:${PORT}`);
+    console.log(`OpenRouter Deep Thinking Proxy running on http://localhost:${PORT}`);
 });
 
