@@ -38,11 +38,26 @@ Deep Thinker, **herhangi bir** teknoloji yığınında uzmandır. Dinamik Kimlik
 - **Backend**: Laravel (Service Pattern/Eloquent), Node/Express (Layered Arch), Go, Rust.
 - **Sistem**: Python, C++, Docker, Kubernetes, Terraform.
 
-### 4. 📦 Güvenli İzole Sandbox (Sandbox)
+### 4. 🧠 Semantik Bellek ve Proje Farkındalığı (RAG)
+Bağlam penceresi (context window) sınırlarını unutun. Deep Thinker, tüm kod tabanınızı bir **Vektör Veritabanına** endeksler:
+- **Semantik Arama**: "JWT oturum süresini nerede kontrol ediyoruz?" diye sorun; dosya adından bağımsız olarak ilgili mantığı anında bulur.
+- **Küresel Bağlam**: Ajan; veritabanı şemanız, backend servisleriniz ve frontend bileşenleriniz arasındaki ilişkiyi profesyonel bir mühendis gibi anlar.
+
+### 5. 🛠️ Endüstriyel Seviye Araçlar (50+ Uzman Araç)
+Deep Thinker, profesyonel geliştiriciler için modüler bir araç kütüphanesiyle birlikte gelir:
+- **DevOps**: Tek tıkla Dockerize etme, Kube manifestleri ve Terraform altyapı kodları.
+- **Güvenlik (Security)**: Otonom kaynak kod denetimi ve güvenlik açığı tespiti.
+- **Veritabanı (Database)**: Otomatik SQL sorgu optimizasyonu ve indeks önerileri.
+- **Git Ops**: Akıllı PR incelemeleri, çakışma (conflict) çözümü ve otomatik changelog üretimi.
+
+### 6. 📦 Güvenli İzole Sandbox (Sandbox)
 Üretilen her kod parçası, izole bir **Çalıştırma Sandbox'ında** (Node, Python, PHP, Bash desteğiyle) test edilebilir. Üretim dosyalarınıza kaydedilmeden önce mantık ve çıktı doğrulaması yapılır.
 
-### 5. 🏗️ Mikro Görev Fabrikası
-Sistem, projeyi dev bir blok olarak işlemek yerine `TODO.md` dosyasına böler ve her adımı atomik bir birim olarak yürütür. Bu sayede %100 şeffaflık ve ilerleme takibi sağlar.
+### 7. 🕵️ Proaktif İzleyici ve Öğrenme
+Sistem asla uyumaz. **Start Watcher** modunda:
+- Arka planda dosya değişikliklerini izler.
+- Kod yazım alışkanlıklarınızdan öğrenerek daha iyi "bir sonraki adım" önerileri sunar.
+- Dosyaları kaydettiğinizde otonom olarak potansiyel hataları (bug) bayraklar.
 
 ---
 

@@ -38,11 +38,26 @@ Deep Thinker is an expert in **any** technology stack. It uses Dynamic Persona S
 - **Backend**: Laravel (Service Pattern/Eloquent), Node/Express (Layered Arch), Go, Rust.
 - **Systems**: Python, C++, Docker, Kubernetes, Terraform.
 
-### 4. 📦 Ironclad Safety Sandbox
+### 4. 🧠 Semantic Memory & Project-Aware RAG
+Forget context window limits. Deep Thinker indexes your entire codebase into a **Vector Store**:
+- **Semantic Search**: Ask "Where did we handle JWT session expiry?" and it finds the exact logic, regardless of file name.
+- **Global Context**: The agent understands the relationship between your database schema, backend services, and frontend components.
+
+### 5. 🛠️ Industrial-Grade Tooling (50+ Specialized Tools)
+Deep Thinker comes with a modular library of handlers for professional developers:
+- **DevOps**: One-click Dockerization, K8s manifests, and Terraform infrastructure.
+- **Security**: Autonomous source code audit and vulnerability detection.
+- **Database**: Automated SQL query optimization and index suggestions.
+- **Git Ops**: Intelligent PR reviews, conflict resolution, and changelog generation.
+
+### 6. 📦 Ironclad Safety Sandbox
 Every generated snippet can be tested in an isolated **Execution Sandbox** (Supports Node, Python, PHP, Bash). It verifies logic and output before saving any changes to your production files.
 
-### 5. 🏗️ Micro-Task Factory
-Instead of one giant "Deep Thinking" block, the system shards your project into a `TODO.md` file and executes each step as an atomic unit, providing 100% transparency and progress tracking.
+### 7. 🕵️ Proactive Watcher & Learning
+The system doesn't just sleep. It **Start Watcher** mode:
+- Monitors file changes in the background.
+- Learns from your coding patterns to provide better "next-step" suggestions.
+- Proactively flags potential bugs as you save files.
 
 ---
 
