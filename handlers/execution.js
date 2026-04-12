@@ -23,5 +23,31 @@ export const executionHandlers = {
       }],
       isError: !result.success
     };
+  },
+  execute_command: async (args) => {
+    const { command, args: cmdArgs = [] } = args;
+    
+    // Auto-split command string if provided as one
+    let finalCmd = command;
+    let finalArgs = cmdArgs;
+    if (command && !cmdArgs.length) {
+        const parts = command.split(' ');
+        finalCmd = parts[0];
+        finalArgs = parts.slice(1);
+    }
+
+    const result = await sandbox.executeCommand(finalCmd, finalArgs, process.cwd());
+    
+    return {
+      content: [{
+        type: "text",
+        text: `💻 **Terminal Execution**\n\n` +
+              `Command: \`${finalCmd} ${finalArgs.join(' ')}\`\n` +
+              `Status: ${result.success ? '✅ Success' : '❌ Failed'}\n\n` +
+              `**Output (stdout):**\n\`\`\`text\n${result.stdout || '(no output)'}\n\`\`\`\n\n` +
+              `**Error (stderr):**\n\`\`\`text\n${result.stderr || '(no error)'}\n\`\`\``
+      }],
+      isError: !result.success
+    };
   }
 };
