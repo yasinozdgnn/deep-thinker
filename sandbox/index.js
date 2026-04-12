@@ -13,6 +13,10 @@ export class SandboxManager {
       ...config
     };
   }
+  
+  log(message) {
+    console.error(`[SANDBOX] ${message}`);
+  }
 
   async initialize() {
     try {
@@ -59,6 +63,18 @@ export class SandboxManager {
         await fs.rm(workDir, { recursive: true, force: true });
       } catch {}
     }
+  }
+
+  async executeCommand(command, args = [], workspaceDir) {
+    // SECURITY: Ensure workspaceDir exists
+    try {
+      await fs.access(workspaceDir);
+    } catch (e) {
+      throw new Error(`Workspace directory does not exist: ${workspaceDir}`);
+    }
+
+    this.log(`🚀 Executing command in workspace: ${command} ${args.join(' ')}`);
+    return await this.runProcess(command, args, workspaceDir);
   }
 
   getLanguageConfig(language) {

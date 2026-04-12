@@ -2,7 +2,7 @@ import { ArchitectAgent } from '../architect/index.js';
 import { CoderAgent, QAAgent } from './agents.js';
 import { TaskSplitter } from './task-splitter.js';
 import { SandboxManager } from '../../sandbox/index.js';
-import { writeFileContent } from '../../helpers/index.js';
+import { writeFileContent, robustJSONParse } from '../../helpers/index.js';
 import path from 'path';
 import fs from 'fs/promises';
 
@@ -20,9 +20,11 @@ export class SwarmOrchestrator {
     this.config = {
       requireApproval: false,
       maxRetries: 3,
+      maxFeedbackCycles: 2, // Prevent infinite loops
       ...config
     };
     this.currentBlueprint = null;
+    this.feedbackCycles = 0;
     this.colors = {
       reset: "\x1b[0m",
       bright: "\x1b[1m",
@@ -31,8 +33,29 @@ export class SwarmOrchestrator {
       yellow: "\x1b[33m",
       cyan: "\x1b[36m",
       magenta: "\x1b[35m",
-      red: "\x1b[31m"
+      red: "\x1b[31m",
+      blue: "\x1b[34m"
     };
+    
+    this.agents = {
+        architect: { name: 'Archie', icon: '📐', color: this.colors.cyan },
+        coder: { name: 'Codey', icon: '👨‍💻', color: this.colors.green },
+        qa: { name: 'Tester', icon: '🧪', color: this.colors.magenta },
+        system: { name: 'Swarm', icon: '🐝', color: this.colors.yellow }
+    };
+  }
+
+  speak(from, to, message) {
+    const sender = this.agents[from] || this.agents.system;
+    const receiver = this.agents[to] ? `${this.agents[to].icon} ${this.agents[to].name}` : '👤 User';
+    
+    console.log(`\n${sender.color}${this.colors.bright}${sender.icon} ${sender.name}${this.colors.reset} ${this.colors.dim}→ ${receiver}${this.colors.reset}`);
+    console.log(`${this.colors.bright}"${message}"${this.colors.reset}`);
+  }
+
+  thinking(agentKey, message = "Thinking...") {
+    const agent = this.agents[agentKey] || this.agents.system;
+    process.stderr.write(`${this.colors.dim}${agent.icon} ${agent.name} is ${message}...${this.colors.reset}\r`);
   }
 
   async runSwarm(task) {
@@ -54,7 +77,8 @@ export class SwarmOrchestrator {
   }
 
   async architectPhase(task) {
-    this.log('🏗️ Architect is designing with Miro-Sharding...');
+    this.speak('architect', 'system', `I'm analyzing the request. Let's design a robust blueprint for: ${task}`);
+    this.thinking('architect');
     const blueprint = await this.architect.runShardedAnalysis(task);
 
     this.currentBlueprint = blueprint;
@@ -64,12 +88,7 @@ export class SwarmOrchestrator {
       content: blueprint
     });
 
-    this.log(`📐 Blueprint created: ${blueprint.project_name}`);
-    this.log(`   - Tables: ${blueprint.architecture.database?.tables?.length || 0}`);
-    this.log(`   - Endpoints: ${blueprint.architecture.backend?.endpoints?.length || 0}`);
-    this.log(`   - Components: ${blueprint.architecture.frontend?.component_tree?.length || 0}`);
-    this.log(`   - Steps: ${blueprint.execution_steps.length}`);
-
+    this.speak('architect', 'system', `Blueprint for "${blueprint.project_name}" is ready! It includes ${blueprint.execution_steps.length} atomic steps.`);
     return blueprint;
   }
 
@@ -107,13 +126,34 @@ export class SwarmOrchestrator {
         console.log(`\n${this.colors.cyan}[TASK ${i+1}/${total}] [${bar}] ${progress}%${this.colors.reset}`);
         console.log(`${this.colors.yellow}🚀 Acting on: ${this.colors.bright}${task.title}${this.colors.reset}`);
 
+        // Agent thinks about the task
+        this.speak('coder', 'architect', `Received! I'm starting on: ${task.title}. I'll ensure the code is modular and the UI feels premium.`);
+        this.thinking('coder', `implementing ${task.title}`);
         const result = await this.coder.think({
             task: task.prompt,
             stack: blueprint.tech_stack,
             context: `Global Architecture: ${JSON.stringify(blueprint.architecture)}`
         });
 
-        const codeFiles = this.parseCoderResponse(result);
+        const parsed = this.parseAgentResponse(result);
+        
+        // INTER-AGENT FEEDBACK LOOP: Coder -> Architect (Bi-directional Messaging)
+        if (parsed.feedback && parsed.feedback.target === 'architect' && this.feedbackCycles < this.config.maxFeedbackCycles) {
+            this.speak('coder', 'architect', `Wait Archie, I found an issue: ${parsed.feedback.issue}. I need you to revise the ${parsed.feedback.required_change}.`);
+            this.feedbackCycles++;
+            
+            // Re-Architect with feedback
+            const revisionPrompt = `REVISION REQUESTED BY CODER: ${parsed.feedback.issue}\nREQUIRED CHANGE: ${parsed.feedback.required_change}\nORIGINAL DESIGN CONTEXT: ${JSON.stringify(blueprint.architecture)}`;
+            this.thinking('architect', 'revising blueprint');
+            const newBlueprint = await this.architect.runShardedAnalysis(revisionPrompt);
+            
+            this.currentBlueprint = newBlueprint;
+            blueprint.architecture = newBlueprint.architecture; // Update local loop context
+            
+            this.speak('architect', 'coder', `Good catch, Codey! I've revised the architecture to include the ${parsed.feedback.required_change}. You can proceed now.`);
+        }
+
+        const codeFiles = parsed.files || [];
         for (const file of codeFiles) {
             await this.saveFile(file);
             allCodeFiles.push(file);
@@ -251,41 +291,29 @@ export class SwarmOrchestrator {
     };
   }
 
-  parseCoderResponse(response) {
+  parseAgentResponse(response) {
     if (!response || typeof response !== 'string') {
-      this.log('⚠️ Coder returned empty or invalid response.');
-      return [];
+      this.log('⚠️ Agent returned empty or invalid response.');
+      return { files: [], feedback: null };
     }
 
     try {
-      // Robust extraction: Find the first '[' and last ']' to isolate the JSON array
-      const startIndex = response.indexOf('[');
-      const endIndex = response.lastIndexOf(']');
-
-      if (startIndex !== -1 && endIndex !== -1 && startIndex < endIndex) {
-          const jsonCandidate = response.substring(startIndex, endIndex + 1);
-          try {
-              const parsed = JSON.parse(jsonCandidate);
-              if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].fileName) {
-                  return parsed;
-              }
-          } catch (e) {
-              this.log(`⚠️ Partial JSON match failed to parse: ${e.message}`);
-          }
-      }
-
-      // Fallback: Check for code blocks if standard extraction fails
-      const clean = response.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```$/, '');
-      if (clean.includes('"fileName"') && clean.includes('"content"')) {
-          try {
-              return JSON.parse(clean);
-          } catch (e) {}
+      const parsed = robustJSONParse(response);
+      if (parsed) {
+          // Handle both new format { files, feedback } and old format [ files ]
+          if (Array.isArray(parsed)) return { files: parsed, feedback: null };
+          return {
+              files: parsed.files || [],
+              feedback: parsed.feedback || null,
+              status: parsed.status || 'FAIL',
+              issues: parsed.issues || []
+          };
       }
     } catch (e) {
-      this.log(`⚠️ Failed to parse coder JSON: ${e.message}`);
+      this.log(`⚠️ Failed to parse agent JSON: ${e.message}`);
     }
 
-    return [{ fileName: 'index.html', content: response }];
+    return { files: [], feedback: null };
   }
 
   async saveFile(file) {
@@ -340,8 +368,8 @@ export class SwarmOrchestrator {
           design: `Error: ${execution.stderr}\n\nPrevious Code:\n${mainFile.content}`
         });
 
-        const fixedFiles = this.parseCoderResponse(fixedResponse);
-        for (const f of fixedFiles) {
+        const fixedData = this.parseAgentResponse(fixedResponse);
+        for (const f of (fixedData.files || [])) {
           await this.saveFile(f);
           const original = codeFiles.find(cf => cf.fileName === f.fileName);
           if (original) original.content = f.content;
@@ -379,36 +407,58 @@ export class SwarmOrchestrator {
         }
     }
 
-    // NEW: Trigger AI-Powered Smart QA Audit
-    const codeContent = codeFiles.map(f => `// File: ${f.fileName}\n${f.content}`).join('\n\n');
+    // IMPROVED: Test Engineer Mode - Execute real commands
+    this.speak('qa', 'system', `I'm launching the Test Runner to verify the project integrity.`);
+    const testCmd = this.currentBlueprint?.tech_stack?.some(s => s.toLowerCase().includes('node')) ? 'npm test' : 'ls -R';
+    
+    let runtimeLogs = "";
+    try {
+        const [cmd, ...args] = testCmd.split(' ');
+        this.thinking('qa', `running ${testCmd}`);
+        const run = await this.sandbox.executeCommand(cmd, args, this.projectPath);
+        runtimeLogs = `STDOUT:\n${run.stdout}\n\nSTDERR:\n${run.stderr}`;
+    } catch (e) {
+        runtimeLogs = `Execution Error: ${e.message}`;
+    }
+
+    // Trigger AI-Powered Smart QA Audit
+    this.thinking('qa', 'auditing code and logs');
+    const codeContent = codeFiles.slice(-5).map(f => `// File: ${f.fileName}\n${f.content}`).join('\n\n');
     const rawReport = await this.qa.think({ 
         code: codeContent,
+        logs: runtimeLogs,
         stack: this.currentBlueprint?.tech_stack || []
     });
     
-    const { robustJSONParse } = await import('../../helpers/index.js');
-    const report = robustJSONParse(rawReport);
+    const report = this.parseAgentResponse(rawReport);
 
     if (report && report.status === "FAIL") {
-        this.log(`${this.colors.red}❌ QA Audit FAILED with ${report.issues.length} issues.${this.colors.reset}`);
-        for (const issue of report.issues) {
-            this.log(`   - [${issue.severity}] ${issue.file}: ${issue.issue}`);
+        this.speak('qa', 'system', `Audit failed! I found ${report.issues?.length || 0} issues that need immediate attention.`);
+        
+        // INTER-AGENT FEEDBACK: QA -> Architect
+        if (report.feedback && report.feedback.target === 'architect') {
+             this.speak('qa', 'architect', `Archie, we have a structural problem. ${report.feedback.message}`);
+        }
+
+        for (const issue of (report.issues || [])) {
             if (issue.severity === "HIGH") {
-                this.log(`🛠️ Self-Healing: Fixing ${issue.file}...`);
+                this.speak('qa', 'coder', `Codey, there's a critical issue in ${issue.file}: ${issue.issue}. Here is the fix: ${issue.fix}`);
+                this.thinking('coder', 'applying fix');
                 const fixResponse = await this.coder.think({
                     task: `Fix issue: ${issue.issue}`,
-                    design: `Current Code:\n${codeFiles.find(f => f.fileName === issue.file)?.content || ''}\n\nRecommended Fix: ${issue.fix}`
+                    design: `Current Code:\n${codeFiles.find(f => f.fileName === issue.file)?.content || ''}\n\nRecommended Fix: ${issue.fix}\n\nRuntime Logs:\n${runtimeLogs}`
                 });
-                const fixedFiles = this.parseCoderResponse(fixResponse);
-                for (const rf of fixedFiles) {
+                const fixedData = this.parseAgentResponse(fixResponse);
+                for (const rf of (fixedData.files || [])) {
                     await this.saveFile(rf);
                     const original = codeFiles.find(f => f.fileName === rf.fileName);
                     if (original) original.content = rf.content;
                 }
+                this.speak('coder', 'qa', `Fixed the issue in ${issue.file}. Ready for re-audit!`);
             }
         }
     } else {
-        this.log(`${this.colors.green}✅ AI QA Audit PASSED. (Score: ${report?.overall_quality_score || 'N/A'}/10)${this.colors.reset}`);
+        this.speak('qa', 'system', `All systems go! Code quality score: ${report?.overall_quality_score || '10'}/10. Excellent work team.`);
     }
 
     await this.selfHealPhase(codeFiles);

@@ -54,7 +54,7 @@ export class CoderAgent extends BaseAgent {
     const stackRules = getFrameworkRules(context.stack || []);
     
     return `Persona: Principal Software Engineer
-Goal: Implement the technical blueprint designed by the Architect with Zero-Bug/Production-Grade quality.
+Goal: Implement the technical blueprint with Zero-Bug/Production-Grade quality.
 
 ${CODE_QUALITY_REQUIREMENTS}
 
@@ -62,24 +62,24 @@ ${PREMIUM_UI_GUIDELINES}
 
 ${stackRules}
 
-Task Description: ${context.task}
-Architect's Instructions: ${context.design}
+Task: ${context.task}
+Architect's Design: ${context.design}
 
-OUTPUT RULES:
-1. Write scalable, modular, and self-explanatory code.
-2. Use modern CSS (Grid/Flexbox/Animations). No outdated table layouts or unstyled tags.
-3. Ensure interactivity is smooth and handles errors gracefully.
-4. Output strict JSON format. 
-5. Response must be a SINGLE JSON array of objects, where each object represents a file.
-Format:
-[
-  {
-    "fileName": "path/to/file.js",
-    "content": "raw code content here"
+CRITICAL: If you find a fundamental logic flaw, missing requirement, or impossible constraint in the Architect's design, you MUST provide feedback.
+
+OUTPUT FORMAT (Strict JSON Object):
+{
+  "files": [
+    { "fileName": "path/file.ext", "content": "code..." }
+  ],
+  "feedback": {
+    "target": "architect",
+    "issue": "Specific logic flaw found in the blueprint",
+    "required_change": "What the architect needs to fix"
   }
-]
+}
 
-Do NOT wrap the JSON in markdown code blocks. Just return the raw JSON string.`;
+Note: If no feedback is needed, set 'feedback' to null. Return ONLY the raw JSON object.`;
   }
 }
 
@@ -91,31 +91,30 @@ export class QAAgent extends BaseAgent {
   buildPrompt(context) {
     const stackRules = getFrameworkRules(context.stack || []);
 
-    return `Persona: Senior QA Auditor & Security Specialist
-Goal: Rigorously verify the generated code for technical integrity, security, and UI excellence.
+    return `Persona: Senior QA Auditor & Runtime Analyst
+Goal: Verify code integrity through static analysis AND runtime log evaluation.
 
 ${stackRules}
 
-VERIFICATION CRITERIA:
-1. SYNTAX & LOGIC: Check for missing brackets, undefined variables, or logically impossible loops.
-2. DEPENDENCIES: Are all imported files/assets available in the project context?
-3. UI QUALITY: Does the CSS meet "Premium" standards (Gradients, Animations, No browser defaults)?
-4. COMPLIANCE: Does the code follow SOLID/DRY and FRAMEWORK-SPECIFIC principles?
-5. ROBUSTNESS: Are there proper try-catch blocks and input validations?
+Verification Context:
+- Code: ${context.code}
+- Runtime Logs (stdout/stderr): ${context.logs || "No logs available yet."}
 
-Code to Audit:
-${context.code}
+AUDIT RULES:
+1. SOURCING: If runtime logs show a crash, identify the exact line.
+2. FEEDBACK: If the error is due to a bad architectural decision (e.g. wrong port, missing env, bad schema), send feedback to the Architect.
+3. REPAIR: If it's a coding bug, provide a fix for the Coder.
 
-Output a detailed audit report in JSON format:
+OUTPUT FORMAT (Strict JSON Object):
 {
   "status": "PASS" | "FAIL",
+  "feedback": { "target": "architect" | "coder", "message": "reasoning" },
   "issues": [
-    { "file": "string", "issue": "string", "severity": "LOW" | "HIGH", "fix": "string" }
+    { "file": "string", "issue": "string", "severity": "HIGH", "fix": "string" }
   ],
-  "overall_quality_score": 1-10,
-  "recommendations": ["string"]
+  "overall_quality_score": 1-10
 }
 
-Do NOT wrap the JSON in markdown code blocks. Just return the raw JSON string.`;
+Return ONLY the raw JSON object.`;
   }
 }

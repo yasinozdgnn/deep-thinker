@@ -63,11 +63,11 @@ export class ArchitectAgent {
   }
 
   async runShardedAnalysis(task) {
-    this.log(`🧩 Starting Sharded Architectural Analysis...`);
+    this.log(`I'm initiating a multi-layered sharded analysis. This ensures every edge case is considered.`);
     
     // Step 1: Rapid Component Inventory (File Tree)
     const inventory = await this.generateComponentInventory(task);
-    this.log(`🗂️ Discovered ${inventory.files ? inventory.files.length : 0} components.`);
+    this.log(`Strategic scan complete! I've identified ${inventory.files ? inventory.files.length : 0} distinct components for this build.`);
 
     const projectName = this.extractProjectName(task) || 'Sharded Project';
     const shardedBlueprint = createEmptyBlueprint(projectName);
@@ -77,9 +77,10 @@ export class ArchitectAgent {
 
     // Step 2: Micro-Design for EACH component separately
     if (inventory.files && Array.isArray(inventory.files)) {
+      this.log(`I'm now deep-diving into the individual logic of each component. This will be a precision-sharded build.`);
       for (let i = 0; i < inventory.files.length; i++) {
           const file = inventory.files[i];
-          this.log(`📐 [ARCHITECT ${i+1}/${inventory.files.length}] Designing: ${file.path}`);
+          this.log(`[${i+1}/${inventory.files.length}] Designing logic for: ${file.path}. I'm defining its specific functions, state handling, and UI details.`);
           
           const componentPlan = await this.designSingleComponent(file, task, inventory.architecture);
           shardedBlueprint.execution_steps.push({
@@ -456,7 +457,7 @@ ${safeSteps.map((step, i) => {
   }
 
   log(message) {
-    console.error(`[ARCHITECT] ${message}`);
+    console.error(`\n\x1b[36m\x1b[1m📐 Archie:\x1b[0m \x1b[3m"${message}"\x1b[0m`);
   }
 }
 
