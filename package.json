@@ -1,7 +1,7 @@
 {
   "name": "glm-think-mcp",
   "version": "1.0.0",
-  "description": "",
+  "description": "Ultra-Autonomous AI Software Engineer CLI & MCP. Full-stack architecting, coding, and self-healing QA powered by GLM-4.7 Swarm Intelligence.",
   "main": "index.js",
   "type": "module",
   "bin": {
@@ -10,7 +10,16 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "ai-agent",
+    "mcp-server",
+    "autonomous",
+    "glm4",
+    "agentic-workflow",
+    "software-engineer",
+    "cli-agent",
+    "self-healing-code"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {

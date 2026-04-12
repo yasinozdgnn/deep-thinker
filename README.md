@@ -1,4 +1,6 @@
-# 🤖 Deep Thinker: The Autonomous CLI Agent & MCP Powerhouse
+# 🤖 Deep Thinker: Turn complex ideas into production-ready code, autonomously.
+
+**A project-aware AI swarm that plans, builds, and self-heals in any language. The only agent you need for end-to-end software engineering.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)

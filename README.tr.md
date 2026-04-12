@@ -1,4 +1,6 @@
-# 🤖 Deep Thinker: Otonom CLI Ajanı ve MCP Gücü
+# 🤖 Deep Thinker: Karmaşık fikirleri otonom olarak üretime hazır koda dönüştürün.
+
+**Her dilde planlayan, kuran ve kendi kendini iyileştiren proje farkındalıklı AI sürüsü. Uçtan uca yazılım mühendisliği için ihtiyacınız olan tek ajan.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
