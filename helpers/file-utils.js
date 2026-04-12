@@ -9,7 +9,7 @@ export function validateFilePath(filePath) {
       error: {
         content: [{
           type: "text",
-          text: `ERROR: No file path provided. Please specify a complete file path including the filename and extension (e.g., src/index.ts).`
+          text: `ERROR: No file path provided. To find a file, use 'read_project' to list the structure, or specify a complete file path (e.g., src/index.ts). For project-wide checks, use the Swarm.`
         }],
         isError: true
       }

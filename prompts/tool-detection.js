@@ -1,94 +1,24 @@
-export const TOOL_LIST = `=== AUTONOMOUS AGENTS (4) ===
-2. delegate_to_swarm - **SUPER TOOL**: Autonomous E2E Build. Plan -> Architect -> Code -> Verify -> QA. Use this for "Build X", "Create App", "Make Website". Turkish: "yap", "oluştur", "inşa et", "kur".
-3. plan_task - Create a granular execution plan for a task (without auto-execution). Turkish: "planla", "taslak çıkar".
-4. execute_mission - **AUTOPILOT**: Execute a planned task loop until completion. Use this to run a plan automatically.
-5. decompose_task - Break down complex task into subtasks. Turkish: "parçala", "ayır".
+export const TOOL_LIST = `=== PROJECT-WIDE TOOLS (Autonomous Swarm) ===
+1. delegate_to_swarm - **SUPER TOOL**: Use for any project-wide task, finding/fixing bugs across multiple files, building features, or general "fix project" requests. If NO specific file is mentioned in the prompt, USE THIS for bug finding. Turkish: "projeyi düzelt", "hataları bul", "yap", "oluştur".
 
-=== ARCHITECT TOOLS (3) ===
-6. design_system - Design specific system architecture (Blueprint) - Use 'delegate_to_swarm' instead for full builds!
-7. analyze_architecture - Analyze existing project architecture. Turkish: "mimarini incele".
-8. visualize_architecture - Generate architecture diagrams (Mermaid). Turkish: "çiz", "görselleştir".
+=== PROJECT-WIDE ANALYSIS ===
+2. read_project - Scan project structure and important files. Best for "what is this project?" or "list files".
+3. analyze_directory - Analyze all code in a folder for architecture, security, or performance.
+4. analyze_architecture - Review overall system design.
 
-=== CORE TOOLS (3) ===
-1. deep_think_chat - Complex coding questions. Turkish: "sor", "danış".
-2. deep_think_verbose - Deep thinking with visible reasoning
-3. deep_think_code - Generate code and save to file. Turkish: "kod yaz".
+=== SINGLE-FILE OPERATIONS (Requires filePath) ===
+5. read_file - Read specific file contents.
+6. write_file - Save content to a specific file.
+7. find_bugs - [Single-File] Analyze a SPECIFIC file for errors. Use only if a file path is provided!
+8. refactor_code - [Single-File] Refactor/Fix a specific file.
+9. explain_code - [Single-File] Explain one file.
+10. add_comments - [Single-File] Add comments to one file.
+11. generate_tests - [Single-File] Create tests for one file.
 
-=== FILE OPERATIONS (5) ===
-4. read_file - Read file contents. Turkish: "oku", "içek", "bak".
-5. write_file - Write content to file. Turkish: "yaz", "kaydet", "dosya oluştur".
-6. list_directory - List files in directory. Turkish: "listele", "dosyaları göster".
-7. search_in_files - Search for pattern in files. Turkish: "ara", "bul".
-8. read_related_files - Read multiple related files intelligently
-
-=== CODE ANALYSIS (6) ===
-9. refactor_code - Refactor/Fix code and save. Turkish: "düzelt", "optimize et", "iyileştir", "hatasını gider".
-10. explain_code - Generate detailed explanation. Turkish: "açıkla", "anlat".
-11. add_comments - Add inline comments. Turkish: "yorum ekle".
-12. find_bugs - Analyze code for bugs. Turkish: "hatayı bul".
-13. optimize_code - Performance optimizations. Turkish: "hızlandır".
-14. find_references - Find symbol usages
-
-=== GIT OPERATIONS (2) ===
-15. git_diff_explain - Explain git diff
-16. generate_commit_message - Generate commit message
-
-=== TEST & DOCUMENTATION (3) ===
-17. generate_tests - Generate unit tests. Turkish: "test yaz", "test oluştur".
-18. generate_docs - Generate JSDoc/TSDoc. Turkish: "dokümante et".
-19. create_readme - Generate README.md. Turkish: "readme oluştur".
-
-=== PROJECT MANAGEMENT (2) ===
-20. create_project - Create boilerplate project. Turkish: "proje oluştur".
-21. add_dependency - Add dependency. Turkish: "ekle", "kütüphane kur".
-
-=== DATABASE TOOLS (4) ===
-22. analyze_query - SQL query performance analysis, N+1 detection. Turkish: "sorguyu incele".
-23. explain_schema - Database schema documentation, ER diagrams. Turkish: "şemayı anlat".
-24. suggest_indexes - Optimal index recommendations
-25. review_migration - Migration safety review
-
-=== GIT ADVANCED TOOLS (4) ===
-26. resolve_conflicts - Git conflict resolution
-27. branch_analyzer - Branch strategy and merging
-28. pr_review - Pull request review
-29. git_history - Commit history analysis
-
-=== CI/CD & DEVOPS TOOLS (4) ===
-30. generate_dockerfile - Optimized Dockerfile (multi-stage)
-31. generate_github_actions - CI/CD workflow
-32. k8s_manifest - Kubernetes manifests
-33. terraform_module - Terraform modules
-
-=== TEST ADVANCED TOOLS (4) ===
-34. generate_e2e_tests - Playwright/Cypress E2E tests
-35. test_coverage_analysis - Test coverage gaps
-36. mock_generator - API mocks (MSW, Nock)
-37. load_test_script - Load testing (k6, artillery)
-
-=== SECURITY & SAST TOOLS (4) ===
-38. security_scan - OWASP Top 10 security scan
-39. dependency_audit - Vulnerability detection
-40. secrets_scanner - Hardcoded secrets detection
-41. api_security - API endpoint security analysis
-
-=== PERFORMANCE & OPTIMIZATION TOOLS (4) ===
-42. bundle_analysis - Bundle size analysis
-43. memory_leak_detect - Memory leak detection
-44. api_response_time - API performance benchmark
-45. caching_strategy - Caching recommendations
-
-=== API & DOCUMENTATION TOOLS (4) ===
-46. openapi_spec - OpenAPI/Swagger specification
-47. api_client_generator - API client code
-48. graphql_schema - GraphQL schema design
-49. api_migration - REST to GraphQL migration
-
-=== PROJECT STRATEGY TOOLS (4) ===
-50. architecture_review - Architecture review
-51. tech_stack_migration - Tech stack migration guide
-52. scaling_strategy - Scaling strategy
-53. cost_optimization - Cloud cost optimization`;
+=== OTHER TOOLS ===
+12. deep_think_chat - General questions.
+13. list_directory - List files in a specific folder.
+14. search_in_files - Search for text patterns.`;
 
 export const CODE_QUALITY_REQUIREMENTS = `CODE QUALITY REQUIREMENTS (MANDATORY):
 - SOLID Principles: SRP (Single Responsibility), OCP, LSP, ISP, DIP.
@@ -107,29 +37,25 @@ export const PREMIUM_UI_GUIDELINES = `PREMIUM UI DESIGN PRINCIPLES:
 - Performance: Ensure 60fps animations. Avoid heavy layout shifts.`;
 
 export function buildToolDetectionPrompt(userPrompt) {
-  return `Persona: Autonomous Intent Specialist
-Task: Given the user's request, select the BEST tool and extract its required PARAMETERS.
+  return `Persona: Strategic Intent Dispatcher
+Task: Select the BEST tool for the user's request. 
 
-Note: Handle Multilingual (EN/TR). Map Turkish keywords (oku, yaz, düzelt, yap) to the appropriate tools.
+STRICT DISPATCHING RULES:
+1. **Parameter Guard**: If a tool is labeled [Single-File] (like find_bugs, read_file) but the user DID NOT specify a file path, DO NOT choose it. 
+2. **Project Fallback**: If the user asks a general question ("hata var mı?", "projeyi incele") without a file, choose a PROJECT-WIDE tool (delegate_to_swarm or read_project).
+3. **Handle TR (Turkish)**: Map "hata var mı", "sorunları bul" to delegate_to_swarm if no file is mentioned.
 
 User Request: "${userPrompt}"
 
 ${TOOL_LIST}
 
-STRICT INSTRUCTIONS:
-1. Identify the tool that exactly matches the user's intent.
-2. EXTRACT PARAMETERS: If the tool needs arguments (e.g. filePath, dirPath, content), find them in the prompt or infer them if obvious.
-   - Example: "read README.md" -> tool: "read_file", parameters: { "filePath": "README.md" }
-   - Example: "build a react app" -> tool: "delegate_to_swarm", parameters: { "task": "build a react app" }
-3. Return ONLY a raw JSON object.
-
-Response Format:
+Response Format (JSON):
 {
   "tool": "tool_name",
   "confidence": 0.0-1.0,
   "parameters": {
      "key": "value"
   },
-  "reasoning": "Brief explanation"
+  "reasoning": "Explain why this tool was chosen over others (mention if it was upgraded to project-wide due to missing parameters)"
 }`;
 }
