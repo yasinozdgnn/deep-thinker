@@ -107,28 +107,29 @@ export const PREMIUM_UI_GUIDELINES = `PREMIUM UI DESIGN PRINCIPLES:
 - Performance: Ensure 60fps animations. Avoid heavy layout shifts.`;
 
 export function buildToolDetectionPrompt(userPrompt) {
-  return `Given this user request, choose the BEST tool from our available tools.
-Note: The user might be speaking in TR (Turkish). Map intents like "düzelt" to refactor_code, "yap" to delegate_to_swarm, "oku" to read_file.
+  return `Persona: Autonomous Intent Specialist
+Task: Given the user's request, select the BEST tool and extract its required PARAMETERS.
+
+Note: Handle Multilingual (EN/TR). Map Turkish keywords (oku, yaz, düzelt, yap) to the appropriate tools.
 
 User Request: "${userPrompt}"
 
-Available Tools:
-
 ${TOOL_LIST}
 
-Instructions:
-1. Analyze the user's intent and context (Handle Multilingual: EN/TR)
-2. Match with the most appropriate tool
-3. Consider keyword clues (SQL, git, docker, security, optimize, test, analyze, vb.)
-4. Confidence should be high (0.7+) for clear requests
-5. If multiple tools could work, prioritize based on specificity
+STRICT INSTRUCTIONS:
+1. Identify the tool that exactly matches the user's intent.
+2. EXTRACT PARAMETERS: If the tool needs arguments (e.g. filePath, dirPath, content), find them in the prompt or infer them if obvious.
+   - Example: "read README.md" -> tool: "read_file", parameters: { "filePath": "README.md" }
+   - Example: "build a react app" -> tool: "delegate_to_swarm", parameters: { "task": "build a react app" }
+3. Return ONLY a raw JSON object.
 
-${CODE_QUALITY_REQUIREMENTS}
-
-Response Format (strict JSON):
+Response Format:
 {
   "tool": "tool_name",
   "confidence": 0.0-1.0,
-  "reasoning": "Brief explanation of why this tool was chosen"
+  "parameters": {
+     "key": "value"
+  },
+  "reasoning": "Brief explanation"
 }`;
 }
