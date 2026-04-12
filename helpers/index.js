@@ -9,6 +9,7 @@ export {
   collectDirectoryFiles,
   validateFilePath
 } from './file-utils.js';
+export { robustJSONParse } from './json-utils.js';
 export { 
   runGitCommand, 
   getGitDiff, 

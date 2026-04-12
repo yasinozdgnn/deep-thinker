@@ -42,7 +42,7 @@ import { ToolOrchestrator, RetryManager, ValidationEngine } from "./orchestrator
 import { SelfImprovement, StrategyOptimizer, PatternLearner } from "./learning/index.js";
 import { TaskDecomposer } from "./decomposer/index.js";
 import { AgentCoordinator } from "./agents/index.js";
-import { callGLM, extractCodeFromResponse } from "./helpers/index.js";
+import { callGLM, extractCodeFromResponse, robustJSONParse } from "./helpers/index.js";
 import { readFileContent, writeFileContent } from "./helpers/index.js";
 import { buildToolDetectionPrompt } from "./prompts/index.js";
 import { setToolExecutor } from "./handlers/agent.js";
@@ -74,7 +74,7 @@ let activeRetryManager = null;
 let activeValidationEngine = null;
 let currentProjectPath = null;
 
-function getAgentModules(projectPath) {
+export function getAgentModules(projectPath) {
   if (!projectPath) {
     projectPath = process.cwd();
   }
@@ -122,32 +122,48 @@ function getAgentModules(projectPath) {
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
 
-// AI-powered tool detection using modular prompt
-async function autoDetectTool(prompt) {
+export async function autoDetectTool(prompt) {
   const toolPrompt = buildToolDetectionPrompt(prompt);
   const response = await callGLM(toolPrompt);
 
-  try {
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const result = JSON.parse(jsonMatch[0]);
-      if (result.tool && typeof result.confidence === "number") {
-        return result;
-      }
-    }
-  } catch (error) {
-    console.error("Failed to parse auto-detect response:", error.message);
+  if (!response || typeof response !== "string") {
+    return {
+      tool: null,
+      confidence: 0,
+      reasoning: "LLM returned an empty or invalid response",
+    };
+  }
+
+  const result = robustJSONParse(response);
+  if (result && result.tool && typeof result.confidence === "number") {
+    return result;
   }
 
   return {
     tool: null,
     confidence: 0,
-    reasoning: "Could not determine appropriate tool",
+    reasoning: "Could not determine appropriate tool or parse JSON response",
   };
 }
 
 // Tool execution logic extracted for reuse
-async function executeToolLogic(name, args, isInternal = false) {
+export async function executeToolLogic(name, args, isInternal = false) {
+  // === SEMANTIC PARAMETER NORMALIZATION ===
+  // AI might call it 'prompt', 'task', 'query' or 'message'. 
+  // We ensure the tool gets what it expects regardless of the AI's naming choice.
+  if (args) {
+    const primaryInput = args.prompt || args.task || args.query || args.message;
+    if (primaryInput) {
+      // Create aliases for common names used by different handlers
+      if (!args.prompt) args.prompt = primaryInput;
+      if (!args.task) args.task = primaryInput;
+      if (!args.query) args.query = primaryInput;
+    }
+  }
+
+  // Ensure modules are initialized
+  getAgentModules(args?.projectPath || currentProjectPath);
+
   // Check modular handlers first
   if (handlers[name]) {
     return await handlers[name](args);
@@ -469,5 +485,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 // Initialize automation by injecting the tool executor
 setToolExecutor(executeToolLogic);
 
-const transport = new StdioServerTransport();
-await server.connect(transport);
+async function startServer() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  // console.error("MCP Server connected!");
+}
+
+// Only start the server if this file is run directly (not imported)
+if (process.argv[1] && (process.argv[1].endsWith('index.js') || process.argv[1].endsWith('glm-think-mcp'))) {
+  startServer().catch(error => {
+    console.error('Failed to start MCP server:', error);
+    process.exit(1);
+  });
+}
+
+export { server, executeToolLogic as callTool, autoDetectTool as detectTool };

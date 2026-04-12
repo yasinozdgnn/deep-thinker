@@ -25,6 +25,7 @@ export const handlers = {
   ...architectHandlers,
   ...agentHandlers,
   ...securityHandlers,
-  ...apiHandlers
+  ...apiHandlers,
+  deep_think_code: swarmHandlers.delegate_to_swarm
 };
 

@@ -1,32 +1,32 @@
 export const TOOL_LIST = `=== AUTONOMOUS AGENTS (4) ===
-2. delegate_to_swarm - **SUPER TOOL**: Autonomous E2E Build. Plan -> Architect -> Code -> Verify -> QA. Use this for "Build X", "Create App", "Make Website".
-3. plan_task - Create a granular execution plan for a task (without auto-execution)
+2. delegate_to_swarm - **SUPER TOOL**: Autonomous E2E Build. Plan -> Architect -> Code -> Verify -> QA. Use this for "Build X", "Create App", "Make Website". Turkish: "yap", "oluştur", "inşa et", "kur".
+3. plan_task - Create a granular execution plan for a task (without auto-execution). Turkish: "planla", "taslak çıkar".
 4. execute_mission - **AUTOPILOT**: Execute a planned task loop until completion. Use this to run a plan automatically.
-5. decompose_task - Break down complex task into subtasks
+5. decompose_task - Break down complex task into subtasks. Turkish: "parçala", "ayır".
 
 === ARCHITECT TOOLS (3) ===
 6. design_system - Design specific system architecture (Blueprint) - Use 'delegate_to_swarm' instead for full builds!
-7. analyze_architecture - Analyze existing project architecture
-8. visualize_architecture - Generate architecture diagrams (Mermaid)
+7. analyze_architecture - Analyze existing project architecture. Turkish: "mimarini incele".
+8. visualize_architecture - Generate architecture diagrams (Mermaid). Turkish: "çiz", "görselleştir".
 
 === CORE TOOLS (3) ===
-1. deep_think_chat - Complex coding questions
+1. deep_think_chat - Complex coding questions. Turkish: "sor", "danış".
 2. deep_think_verbose - Deep thinking with visible reasoning
-3. deep_think_code - Generate code and save to file
+3. deep_think_code - Generate code and save to file. Turkish: "kod yaz".
 
 === FILE OPERATIONS (5) ===
-4. read_file - Read file contents
-5. write_file - Write content to file
-6. list_directory - List files in directory
-7. search_in_files - Search for pattern in files
+4. read_file - Read file contents. Turkish: "oku", "içek", "bak".
+5. write_file - Write content to file. Turkish: "yaz", "kaydet", "dosya oluştur".
+6. list_directory - List files in directory. Turkish: "listele", "dosyaları göster".
+7. search_in_files - Search for pattern in files. Turkish: "ara", "bul".
 8. read_related_files - Read multiple related files intelligently
 
 === CODE ANALYSIS (6) ===
-9. refactor_code - Refactor code and save
-10. explain_code - Generate detailed explanation
-11. add_comments - Add inline comments
-12. find_bugs - Analyze code for bugs
-13. optimize_code - Performance optimizations
+9. refactor_code - Refactor/Fix code and save. Turkish: "düzelt", "optimize et", "iyileştir", "hatasını gider".
+10. explain_code - Generate detailed explanation. Turkish: "açıkla", "anlat".
+11. add_comments - Add inline comments. Turkish: "yorum ekle".
+12. find_bugs - Analyze code for bugs. Turkish: "hatayı bul".
+13. optimize_code - Performance optimizations. Turkish: "hızlandır".
 14. find_references - Find symbol usages
 
 === GIT OPERATIONS (2) ===
@@ -34,17 +34,17 @@ export const TOOL_LIST = `=== AUTONOMOUS AGENTS (4) ===
 16. generate_commit_message - Generate commit message
 
 === TEST & DOCUMENTATION (3) ===
-17. generate_tests - Generate unit tests
-18. generate_docs - Generate JSDoc/TSDoc
-19. create_readme - Generate README.md
+17. generate_tests - Generate unit tests. Turkish: "test yaz", "test oluştur".
+18. generate_docs - Generate JSDoc/TSDoc. Turkish: "dokümante et".
+19. create_readme - Generate README.md. Turkish: "readme oluştur".
 
 === PROJECT MANAGEMENT (2) ===
-20. create_project - Create boilerplate project
-21. add_dependency - Add dependency
+20. create_project - Create boilerplate project. Turkish: "proje oluştur".
+21. add_dependency - Add dependency. Turkish: "ekle", "kütüphane kur".
 
 === DATABASE TOOLS (4) ===
-22. analyze_query - SQL query performance analysis, N+1 detection
-23. explain_schema - Database schema documentation, ER diagrams
+22. analyze_query - SQL query performance analysis, N+1 detection. Turkish: "sorguyu incele".
+23. explain_schema - Database schema documentation, ER diagrams. Turkish: "şemayı anlat".
 24. suggest_indexes - Optimal index recommendations
 25. review_migration - Migration safety review
 
@@ -90,14 +90,25 @@ export const TOOL_LIST = `=== AUTONOMOUS AGENTS (4) ===
 52. scaling_strategy - Scaling strategy
 53. cost_optimization - Cloud cost optimization`;
 
-export const CODE_QUALITY_REQUIREMENTS = `CODE QUALITY REQUIREMENTS (All generated code MUST follow):
-- DRY (Don't Repeat Yourself): Reuse existing functions, avoid code duplication
-- SOLID Principles: Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion
-- OOP Best Practices: Proper encapsulation, inheritance, polymorphism where applicable
-- Project Structure Compatibility: Generated code must match existing project conventions, folder structure, naming patterns, and coding style`;
+export const CODE_QUALITY_REQUIREMENTS = `CODE QUALITY REQUIREMENTS (MANDATORY):
+- SOLID Principles: SRP (Single Responsibility), OCP, LSP, ISP, DIP.
+- DRY (Don't Repeat Yourself): Zero code duplication. Use utility functions.
+- Clean Code: Meaningful naming, small functions, no excessive nesting.
+- Performance: Efficient DOM manipulation, optimized SQL, lazy-loading patterns.
+- Error Handling: Proper try-catch blocks, descriptive error messages.
+- Modularity: High cohesion, low coupling. No monolithic files.`;
+
+export const PREMIUM_UI_GUIDELINES = `PREMIUM UI DESIGN PRINCIPLES:
+- Cyberpunk/Neon Aesthetics: Use smooth gradients, neon glows, and dark mode.
+- Modern Typography: Use Inter, Roboto, or Outfit. No default serif fonts.
+- Micro-Animations: Add hover effects, loading transitions, and smooth fades.
+- Glassmorphism: Use backdrop-filter: blur() where appropriate.
+- Responsive Design: Must work flawlessly on Mobile, Tablet, and Desktop.
+- Performance: Ensure 60fps animations. Avoid heavy layout shifts.`;
 
 export function buildToolDetectionPrompt(userPrompt) {
   return `Given this user request, choose the BEST tool from our available tools.
+Note: The user might be speaking in TR (Turkish). Map intents like "düzelt" to refactor_code, "yap" to delegate_to_swarm, "oku" to read_file.
 
 User Request: "${userPrompt}"
 
@@ -106,9 +117,9 @@ Available Tools:
 ${TOOL_LIST}
 
 Instructions:
-1. Analyze the user's intent and context
+1. Analyze the user's intent and context (Handle Multilingual: EN/TR)
 2. Match with the most appropriate tool
-3. Consider keyword clues (SQL, git, docker, security, optimize, test, analyze, etc.)
+3. Consider keyword clues (SQL, git, docker, security, optimize, test, analyze, vb.)
 4. Confidence should be high (0.7+) for clear requests
 5. If multiple tools could work, prioritize based on specificity
 

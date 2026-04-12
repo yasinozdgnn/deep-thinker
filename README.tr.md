@@ -1,146 +1,123 @@
-# Deep-Thinker MCP - Tam Otonom Kodlama Ajanı 🚀
-
-**Deep-Thinker MCP**, IDE'nizi (Cursor, VS Code vb.) **Otonom Bir Yazılım Üssüne** dönüştüren devrim niteliğinde bir [Model Context Protocol](https://github.com/modelcontextprotocol) sunucusudur.
-
-Sadece komut bekleyen klasik yapay zekaların aksine, Deep-Thinker **planlar, kodu çalıştırır, öğrenir ve kod tabanınızı proaktif olarak izler**. **GLM-4** modelinin gücünü, gelişmiş bir Ajan (Agent) mimarisiyle birleştirir.
+# 🤖 Deep Thinker: Otonom CLI Ajanı ve MCP Gücü
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![Status: Autonomous](https://img.shields.io/badge/Status-Autonomous-blue.svg)]()
+[![Type: CLI & MCP](https://img.shields.io/badge/Type-CLI%20%26%20MCP-orange.svg)]()
 
-> "Sadece bir asistan değil. Editörünüzün içinde yaşayan proaktif bir kıdemli yazılım mühendisi."
-
----
-
-## 🌟 Neden bir "Oyun Değiştirici"?
-
-Çoğu AI kodlama aracı **Reaktiftir**: Sen sorarsın, o cevap verir.
-Deep-Thinker **Proaktif & Otonomdur**:
-
-1.  **Düşünür:** Karmaşık görevleri alt parçalara böler (`Görev Ayrıştırma`).
-2.  **Hatırlar:** Semantik hafıza ile projenizin _niyetini_ anlar.
-3.  **İşbirliği Yapar:** Özelleşmiş ajanlardan oluşan bir "Sürü" (Swarm) kurar (Mimar, Kodlayıcı, Testçi).
-4.  **İzler:** Siz kod yazarken arkaplanda dosyaları izler ve hataları düzeltebilir.
+**Deep Thinker** artık sadece bir MCP sunucusu değil; tam donanımlı bir **Otonom CLI Ajanı**'na dönüştü. Sadece kod önermekle kalmaz; yüksek performanslı bir terminal arayüzü üzerinden projeleri bağımsız olarak planlar, mimarisini kurar, kodlar ve doğrular.
 
 ---
 
-## 🚀 Temel Yetenekler
+## 🚀 Evrim: MCP'nin Ötesinde
 
-### 1. 🐝 Sürü Mimarisi (Swarm Architecture)
+Deep Thinker artık iki güçlü modda çalışıyor:
+1.  **Bağımsız CLI Ajanı**: Terminalinizde `deep-think` komutunu çalıştırarak, proje farkındalığına sahip tam etkileşimli bir "Pair Programming" deneyimi yaşayın.
+2.  **MCP Sunucusu**: **Cursor** veya **VS Code** gibi IDE'lere bağlayarak iş akışınızı 50'den fazla uzmanlaşmış araçla güçlendirin.
 
-Neden tek bir AI ile yetinesiniz?
+---
 
-- **Mimar Ajanı (Architect)**: Çözümün mimarisini tasarlar.
-- **Kodlayıcı Ajanı (Coder)**: Tasarıma uygun, optimize kodu yazar.
-- **Kalite Ajanı (QA)**: Testleri yazar ve kodu doğrular.
+## 🌟 Öne Çıkan Özellikler
 
+### 1. 🐝 Swarm (Sürü) Zekası: "Makrodan Mikroya" Fabrikası
+Deep Thinker sadece kod yazmaz; yüksek performanslı bir yazılım mühendisliği ekibi gibi çalışır. **"Macro-to-Micro Sharding"** (Makrodan Mikroya Parçalama) adı verilen özel bir süreç kullanır:
+- **Aşama 1: Parçalı Analiz (Mimar)**: Mimar, genel bir plan yerine çok katmanlı bir analiz yapar. Teknoloji yığınını belirler ve projeyi dosya bazlı atomik talimatlara böler.
+- **Aşama 2: Görev Bölümleme (Fabrika)**: Bu makro talimatlar, bir Görev Bölücüye (Task Splitter) gönderilir. Bu bölücü, proje kök dizininizde her fonksiyonel gereksinimi haritalayan detaylı bir `TODO.md` dosyası oluşturur.
+- **Aşama 3: Paralel Yürütme (Yazılımcı)**: Baş Yazılımcı (Coder) ajanı, bu mikro görevleri sırayla yürütür. Bağlamı (context) anlar, kod tekrarını (DRY) önler ve SOLID prensiplerine tam uyum sağlar.
+- **Aşama 4: Çok Katmanlı Doğrulama (QA)**: QA denetçisi sadece sözdizimini kontrol etmez; dosyalar arası bağımlılıkları denetler, uygulamanın mimari tasarıma uygunluğunu doğrular ve UI'ın "Premium" standartlarda olduğunu garanti eder.
+
+### 2. 🛡️ Kendi Kendini İyileştiren (Self-Healing) Denetim Döngüsü
+Artık bozuk kodlara son. Gelişmiş **Rekürsif QA Döngümüz** şunları otomatik yapar:
+- **Hata Tespiti**: Sözdizimi hatalarını, eksik bağımlılıkları ve mantık hatalarını gerçek zamanlı olarak bulur.
+- **Otonom Kurtarma**: Eğer QA raporu "BAŞARISIZ" dönerse, sistem anında bir düzeltme döngüsü başlatır. Yazılımcı denetim raporunu alır ve hataları siz daha görmeden düzeltir.
+- **Bütünlük**: Bir dosyadaki değişikliğin başka bir dosyadaki bağımlılıkları bozmadığından emin olur.
+
+### 3. 🌍 Evrensel Poliglot Uzmanlık
+Deep Thinker, **herhangi bir** teknoloji yığınında uzmandır. Dinamik Kimlik Değişimi ile her ortama uyum sağlar:
+- **Frontend**: React (Hooks/Context), Angular (Standalone/RxJS), Vue.
+- **Backend**: Laravel (Service Pattern/Eloquent), Node/Express (Layered Arch), Go, Rust.
+- **Sistem**: Python, C++, Docker, Kubernetes, Terraform.
+
+### 4. 📦 Güvenli İzole Sandbox (Sandbox)
+Üretilen her kod parçası, izole bir **Çalıştırma Sandbox'ında** (Node, Python, PHP, Bash desteğiyle) test edilebilir. Üretim dosyalarınıza kaydedilmeden önce mantık ve çıktı doğrulaması yapılır.
+
+### 5. 🏗️ Mikro Görev Fabrikası
+Sistem, projeyi dev bir blok olarak işlemek yerine `TODO.md` dosyasına böler ve her adımı atomik bir birim olarak yürütür. Bu sayede %100 şeffaflık ve ilerleme takibi sağlar.
+
+---
+
+## 🛠️ Kurulum ve Yapılandırma
+
+### Gereksinimler
+- **Node.js**: v18 veya üzeri.
+- **API Anahtarı**: Gemini API Anahtarı veya OpenRouter API Anahtarı.
+
+### 1. Hızlı Kurulum
 ```bash
-# Örnek
-Use delegate_to_swarm: "JWT ile tam kapsamlı bir auth sistemi kur"
-# Sonuç: Sürü, tüm özelliği kendi kendine tasarlar, kodlar ve test eder.
-```
-
-### 2. 🧠 Semantik Hafıza (RAG-Lite)
-
-"Context window" limitlerini unutun. Deep-Thinker tüm kod tabanınızın _anlamını_ bilir.
-
-- **`index_codebase`**: Projeyi tarar ve özetleyerek vektörel (basit) hafızasına alır.
-- **`semantic_search`**: "Ödeme doğrulama mantığı nerede?" diye sorduğunuzda, dosya adı `xyz.js` olsa bile bağlamdan bulur.
-
-### 3. 📦 Kod Çalıştırma Kum Havuzu (Sandbox)
-
-Bozuk kodlara son. Deep-Thinker kodu size sunmadan önce çalıştırıp test eder.
-
-- **`run_in_sandbox`**: Üretilen kod parçacıklarını (Node.js, Python vb.) izole bir ortamda çalıştırır ve doğrular.
-
-### 4. 🕵️ Proaktif İzleyici (Watcher)
-
-Sessiz ortağınız.
-
-- **`start_watcher`**: Arka planda çalışır.
-- Dosya değişikliklerini algılar; kaydettiğiniz an sözdizimi kontrolü, güvenlik taraması veya testleri otomatik tetikleyebilir.
-
----
-
-## 🛠️ Kurulum
-
-```bash
-# 1. Repoyu klonlayın
+# Depoyu klonlayın
 git clone https://github.com/yasinozdgnn/deep-thinker.git
-cd glm-think-mcp
+cd deep-thinker
 
-# 2. Bağımlılıkları yükleyin
+# Bağımlılıkları yükleyin
 npm install
 
-# 3. API Anahtarını Ayarlayın
-# https://api.z.ai adresinden anahtarınızı alın
+# CLI'ı Bağlayın (Önerilen)
+npm link
 ```
 
-### Cursor'a Ekleme (Settings > Features > MCP)
+### 2. Yapılandırma (`.env`)
+Kök dizinde bir `.env` dosyası oluşturun:
+```env
+# Birincil API Anahtarı (Gemini)
+GEMINI_API_KEY=anahtariniz_buraya
 
+# İkincil/Sohbet Modeli (OpenRouter - İsteğe Bağlı)
+OPENROUTER_API_KEY=anahtariniz_buraya
+```
+
+---
+
+## 🎮 Kullanım
+
+### Doğrudan CLI Etkileşimi
+Otonom ajan döngüsünü başlatmak için şu komutu çalıştırmanız yeterlidir:
+```bash
+deep-think
+```
+*Taramanın bitmesini bekleyin, ardından isteğinizi yazın (örn: "Neon temalı bir React dashboard yap").*
+
+### MCP Sunucusu Olarak (Cursor/VS Code)
+IDE ayarlarınıza şunu ekleyin:
 ```json
-{
-  "deep-thinking": {
-    "command": "node",
-    "args": ["C:/path/to/glm-think-mcp/index.js"],
-    "env": {
-      "GLM_API_KEY": "YOUR_API_KEY_HERE"
-    }
-  }
+"deep-thinker": {
+  "command": "node",
+  "args": ["C:/path/to/deep-thinker/index.js"]
 }
 ```
 
 ---
 
-## 📚 50+ Özelleşmiş Araç
-
-Modüler mimari üzerine kurulu güçlü araç seti:
-
-| Kategori       | Araçlar                                                              |
-| -------------- | -------------------------------------------------------------------- |
-| **Otonom**     | `delegate_to_swarm`, `plan_task`, `auto_detect`                      |
-| **Hafıza**     | `index_codebase`, `semantic_search`                                  |
-| **İzleyici**   | `start_watcher`, `stop_watcher`, `watcher_status`                    |
-| **Çalıştırma** | `run_in_sandbox`                                                     |
-| **Kodlama**    | `deep_think_code`, `refactor_code`, `find_bugs` (Auto-Fix)           |
-| **DevOps**     | `generate_dockerfile`, `k8s_manifest`, `terraform_module`            |
-| **DB & Git**   | `analyze_query`, `suggest_indexes`, `pr_review`, `resolve_conflicts` |
-
----
-
-## 🏗️ Mimari
+## 🏗️ Teknik Mimari
 
 ```mermaid
 graph TD
-    User[Kullanıcı / IDE] --> Orchestrator
+    User[Kullanıcı / CLI] --> Orchestrator
     Orchestrator --> Watcher[🕵️ Proaktif İzleyici]
-    Orchestrator --> Memory[🧠 Semantik Hafıza]
-
-    Orchestrator --> Swarm[🐝 Ajan Sürüsü]
-    Swarm --> Architect[Mimar Ajan]
-    Swarm --> Coder[Kodlayıcı Ajan]
-    Swarm --> QA[Kalite Ajanı]
-
-    Coder --> Sandbox[📦 Kum Havuzu]
-    QA --> Sandbox
+    Orchestrator --> Factory[🏭 Mikro Görev Fabrikası]
+    
+    Factory --> TODO[📝 TODO.md Takibi]
+    TODO --> Architect[📐 Sharded Mimar]
+    
+    Architect --> Coder[💻 Baş Yazılımcı]
+    Coder --> QA[🧪 Kıdemli Denetçi]
+    
+    QA -- "Durum: BAŞARISIZ" --> Coder
+    QA -- "Durum: BAŞARILI" --> User
+    
+    Coder --> Sandbox[📦 Güvenli Sandbox]
 ```
 
 ---
 
-## 🤝 Katkıda Bulun
-
-Yapay zeka devriminin bir parçası olun. PR'larınızı bekliyoruz!
-
-1. Forklayın.
-2. Branch oluşturun (`git checkout -b ozellik/yeni-ozellik`).
-3. Commit atın.
-4. Pushlayın.
-5. Pull Request açın.
-
----
-
-## Lisans
-
-MIT © 2026
-
-
+## 📄 Lisans
+MIT © 2026 - [Yasin Ozdogan](https://github.com/yasinozdgnn)

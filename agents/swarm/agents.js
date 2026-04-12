@@ -1,4 +1,5 @@
 import { callGLM } from '../../helpers/index.js';
+import { CODE_QUALITY_REQUIREMENTS, PREMIUM_UI_GUIDELINES, getFrameworkRules } from '../../prompts/index.js';
 
 export class BaseAgent {
   constructor(name, role, config = {}) {
@@ -50,15 +51,26 @@ export class CoderAgent extends BaseAgent {
   }
 
   buildPrompt(context) {
-    return `You are a Senior Full Stack Developer.
-Your goal is to implement the solution designed by the Architect.
-Write clean, distinct, efficient code.
+    const stackRules = getFrameworkRules(context.stack || []);
+    
+    return `Persona: Principal Software Engineer
+Goal: Implement the technical blueprint designed by the Architect with Zero-Bug/Production-Grade quality.
 
-Task: ${context.task}
-Architect's Design: ${context.design}
+${CODE_QUALITY_REQUIREMENTS}
 
-Output strict JSON format. 
-Response must be a SINGLE JSON array of objects, where each object represents a file to be created or modified.
+${PREMIUM_UI_GUIDELINES}
+
+${stackRules}
+
+Task Description: ${context.task}
+Architect's Instructions: ${context.design}
+
+OUTPUT RULES:
+1. Write scalable, modular, and self-explanatory code.
+2. Use modern CSS (Grid/Flexbox/Animations). No outdated table layouts or unstyled tags.
+3. Ensure interactivity is smooth and handles errors gracefully.
+4. Output strict JSON format. 
+5. Response must be a SINGLE JSON array of objects, where each object represents a file.
 Format:
 [
   {
@@ -77,13 +89,33 @@ export class QAAgent extends BaseAgent {
   }
 
   buildPrompt(context) {
-    return `You are a QA Automation Engineer.
-Your goal is to verify the code written by the Developer.
-1. Analyze the code for bugs.
-2. Write comprehensive unit tests.
+    const stackRules = getFrameworkRules(context.stack || []);
 
-Code to Verify: ${context.code}
+    return `Persona: Senior QA Auditor & Security Specialist
+Goal: Rigorously verify the generated code for technical integrity, security, and UI excellence.
 
-Output the test code and bug report.`;
+${stackRules}
+
+VERIFICATION CRITERIA:
+1. SYNTAX & LOGIC: Check for missing brackets, undefined variables, or logically impossible loops.
+2. DEPENDENCIES: Are all imported files/assets available in the project context?
+3. UI QUALITY: Does the CSS meet "Premium" standards (Gradients, Animations, No browser defaults)?
+4. COMPLIANCE: Does the code follow SOLID/DRY and FRAMEWORK-SPECIFIC principles?
+5. ROBUSTNESS: Are there proper try-catch blocks and input validations?
+
+Code to Audit:
+${context.code}
+
+Output a detailed audit report in JSON format:
+{
+  "status": "PASS" | "FAIL",
+  "issues": [
+    { "file": "string", "issue": "string", "severity": "LOW" | "HIGH", "fix": "string" }
+  ],
+  "overall_quality_score": 1-10,
+  "recommendations": ["string"]
+}
+
+Do NOT wrap the JSON in markdown code blocks. Just return the raw JSON string.`;
   }
 }

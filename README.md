@@ -1,156 +1,128 @@
-# Deep-Thinker MCP - The fully Autonomous Coder Agent 🚀
-
-**Deep-Thinker MCP** is a revolutionary [Model Context Protocol](https://github.com/modelcontextprotocol) server that transforms your IDE (Cursor, VS Code, etc.) into an **Autonomous Coding Powerhouse**.
-
-Unlike traditional tools that just wait for commands, Deep-Thinker **plans, executes, learns, and proactively watches** your codebase. It combines the power of **GLM-4** with a sophisticated agentic architecture.
+# 🤖 Deep Thinker: The Autonomous CLI Agent & MCP Powerhouse
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![Status: Autonomous](https://img.shields.io/badge/Status-Autonomous-blue.svg)]()
+[![Type: CLI & MCP](https://img.shields.io/badge/Type-CLI%20%26%20MCP-orange.svg)]()
 
-> "Not just a coding assistant. A proactive software engineer living in your editor."
-
----
-
-## 🌟 Why is this a "Game Changer"?
-
-Most AI coding tools are **Reactive**: You ask, they answer.
-Deep-Thinker is **Proactive & Autonomous**:
-
-1.  **It Thinks:** Breaks down complex tasks into subtasks (`Task Decomposition`).
-2.  **It Remembers:** Understands your project's _intent_ via Semantic Memory.
-3.  **It Collaborates:** Spawns a "Swarm" of specialized agents (Architect, Coder, QA).
-4.  **It Watches:** Monitors your files and auto-fixes issues as you type.
+**Deep Thinker** has evolved. Originally conceived as a Model Context Protocol (MCP) server, it is now a full-blown **Autonomous CLI Agent**. It doesn't just suggest code; it plans, architects, writes, and verifies entire projects independently via a high-performance terminal interface.
 
 ---
 
-## 🚀 Key Capabilities
+## 🚀 The Evolution: Beyond MCP
 
-### 1. 🐝 Swarm Architecture (Multi-Agent System)
+Deep Thinker now operates in two powerful modes:
+1.  **Standalone CLI Agent**: Run `deep-think` in your terminal for a fully interactive, project-aware pair programming experience.
+2.  **MCP Server**: Connect it to IDEs like **Cursor** or **VS Code** to augment your workflow with 50+ specialized tools.
 
-Why rely on one AI when you can have a team?
+---
 
-- **Architect Agent**: Designs the solution structure.
-- **Coder Agent**: Implements the code based on the design.
-- **QA Agent**: Writes tests and verifies the code.
+## 🌟 Key Features
 
+### 1. 🐝 Swarm Intelligence: The "Macro-to-Micro" Factory
+Deep Thinker doesn't just write code; it operates as a high-performance software engineering team. It uses a **Macro-to-Micro Sharding** process:
+- **Phase 1: Sharded Analysis (The Architect)**: Instead of a generic plan, the Architect performs a granular analysis. It identifies the tech stack and shards the project into atomic file-based instructions.
+- **Phase 2: Task Splitting (The Factory)**: These macro-instructions are fed into a Task Splitter that generates a detailed `TODO.md` in your project root, mapping out every functional requirement.
+- **Phase 3: Parallel Execution (The Coder)**: The Principal Coder agent executes these micro-tasks one by one. It understands context, prevents duplication (DRY), and ensures SOLID compliance.
+- **Phase 4: Multi-Layer Verification (The QA)**: The QA Auditor doesn't just check syntax. it audits cross-file dependencies, verifies implementation against the Architect's design, and ensures the UI meets "Premium" standards.
+
+### 2. 🛡️ Self-Healing "Audit-Fix" Loop
+No more broken code. Our state-of-the-art **Recursive QA Loop** automatically:
+- **Discovery**: Detects syntax errors, missing dependencies, and logic flaws in real-time.
+- **Autonomous Recovery**: If the QA state is "FAIL", the system triggers an immediate fixing cycle. The Coder receives the audit report and corrects the code *before* it reaches the user.
+- **Integrity**: Ensures that a change in one file doesn't break dependencies in another.
+
+### 3. 🌍 Universal Polyglot Expert
+Deep Thinker is an expert in **any** technology stack. It uses Dynamic Persona Switching to adapt to:
+- **Frontend**: React (Hooks/Context), Angular (Standalone/RxJS), Vue.
+- **Backend**: Laravel (Service Pattern/Eloquent), Node/Express (Layered Arch), Go, Rust.
+- **Systems**: Python, C++, Docker, Kubernetes, Terraform.
+
+### 4. 📦 Ironclad Safety Sandbox
+Every generated snippet can be tested in an isolated **Execution Sandbox** (Supports Node, Python, PHP, Bash). It verifies logic and output before saving any changes to your production files.
+
+### 5. 🏗️ Micro-Task Factory
+Instead of one giant "Deep Thinking" block, the system shards your project into a `TODO.md` file and executes each step as an atomic unit, providing 100% transparency and progress tracking.
+
+---
+
+## 🛠️ Installation & Setup
+
+### Prerequisites
+- **Node.js**: v18 or higher.
+- **API Key**: A Gemini API Key or OpenRouter API Key.
+
+### 1. Quick Install
 ```bash
-# Example
-Use delegate_to_swarm to "Implement a full auth system with JWT"
-# Result: The swarm designs, builds, and tests the entire feature autonomously.
-```
-
-### 2. 🧠 Semantic Memory (RAG-Lite)
-
-Forget "context window" limits. Deep-Thinker remembers your entire codebase's _meaning_.
-
-- **`index_codebase`**: Scans and "understands" your project.
-- **`semantic_search`**: Ask "Where is the payment validation logic?" and it finds it, even if the file is named `foo.js`.
-
-### 3. 📦 Execution Sandbox
-
-No more broken code. Deep-Thinker tests its own code before giving it to you.
-
-- **`run_in_sandbox`**: Safely executes generated snippets (Node.js, python, etc.) in an isolated environment to verify correctness.
-
-### 4. 🕵️ Proactive Watcher
-
-Your silent partner.
-
-- **`start_watcher`**: Runs in the background.
-- Detects changes, runs syntax checks, security scans, or tests automatically when you save a file.
-
----
-
-## 🛠️ Installation
-
-```bash
-# 1. Clone the repo
+# Clone the repository
 git clone https://github.com/yasinozdgnn/deep-thinker.git
-cd glm-think-mcp
+cd deep-thinker
 
-# 2. Install dependencies
+# Install dependencies
 npm install
 
-# 3. Configure API Key
-# Get your key from https://api.z.ai
+# Build/Link the CLI (Optional but recommended)
+npm link
 ```
 
-### Add to Cursor (Settings > Features > MCP)
+### 2. Configuration (`.env`)
+Create a `.env` file in the root directory:
+```env
+# Primary API Key (Gemini)
+GEMINI_API_KEY=your_key_here
 
+# Fallback/Chat model (OpenRouter - Optional)
+OPENROUTER_API_KEY=your_key_here
+```
+
+---
+
+## 🎮 Usage
+
+### Direct CLI Interaction
+Simply run the following command to start the autonomous agent loop:
+```bash
+deep-think
+```
+*Wait for the scan to finish, then type your request (e.g., "Build a React dashboard with neon theme").*
+
+### As an MCP Server (Cursor/VS Code)
+Add this to your MCP settings:
 ```json
-{
-  "deep-thinking": {
-    "command": "node",
-    "args": ["C:/path/to/glm-think-mcp/index.js"],
-    "env": {
-      "GLM_API_KEY": "YOUR_API_KEY_HERE"
-    }
-  }
+"deep-thinker": {
+  "command": "node",
+  "args": ["C:/path/to/deep-thinker/index.js"]
 }
 ```
 
 ---
 
-## 📚 50+ Specialized Tools
-
-Features a modular architecture with specialized handlers:
-
-| Category       | Tools                                                                |
-| -------------- | -------------------------------------------------------------------- |
-| **Autonomous** | `delegate_to_swarm`, `plan_task`, `auto_detect`                      |
-| **Architect**  | `design_system`, `analyze_architecture`, `visualize_architecture`    |
-| **Memory**     | `index_codebase`, `semantic_search`                                  |
-| **Watcher**    | `start_watcher`, `stop_watcher`, `watcher_status`                    |
-| **Execution**  | `run_in_sandbox`                                                     |
-| **Coding**     | `deep_think_code`, `refactor_code`, `find_bugs` (Auto-Fix)           |
-| **DevOps**     | `generate_dockerfile`, `k8s_manifest`, `terraform_module`            |
-| **DB & Git**   | `analyze_query`, `suggest_indexes`, `pr_review`, `resolve_conflicts` |
-
----
-
-## 🛡️ Industrial Stability
-
-Built for reliability in production environments:
-
-- **Crash Prevention**: Global error handlers prevent server crashes on critical errors.
-- **Zombie Process Protection**: Replaces `stdout` logs with safe `stderr` channels to keep JSON-RPC connection stable.
-- **Defensive Data Handling**: "Airbag" logic ensures the system keeps running even if agents generate incomplete data.
-- **Path Validation**: Smart validation prevents file system errors before they happen.
-
----
-
-## 🏗️ Architecture
+## 🏗️ Technical Architecture
 
 ```mermaid
 graph TD
-    User[User / IDE] --> Orchestrator
+    User[User / CLI] --> Orchestrator
     Orchestrator --> Watcher[🕵️ Proactive Watcher]
-    Orchestrator --> Memory[🧠 Semantic Memory]
-
-    Orchestrator --> Swarm[🐝 Agent Swarm]
-    Swarm --> Architect[Architect Agent]
-    Swarm --> Coder[Coder Agent]
-    Swarm --> QA[QA Agent]
-
-    Coder --> Sandbox[📦 Execution Sandbox]
-    QA --> Sandbox
+    Orchestrator --> Factory[🏭 Micro-Task Factory]
+    
+    Factory --> TODO[📝 TODO.md Tracking]
+    TODO --> Architect[📐 Sharded Architect]
+    
+    Architect --> Coder[💻 Principal Coder]
+    Coder --> QA[🧪 Senior QA Auditor]
+    
+    QA -- "Status: FAIL" --> Coder
+    QA -- "Status: PASS" --> User
+    
+    Coder --> Sandbox[📦 Safety Sandbox]
 ```
 
 ---
 
-## 🤝 Contributing
-
-We are building the future of AI coding. PRs are welcome!
-
-1. Fork the repo.
-2. Create your feature branch (`git checkout -b feature/amazing-feature`).
-3. Commit your changes.
-4. Push to the branch.
-5. Open a Pull Request.
+## 🇹🇷 Türkçe Dil Desteği (Turkish Support)
+Deep Thinker, Türkçe komutları ve niyetlerini (intent) otonom olarak anlar. "Bana bir giriş ekranı yap" veya "Kodu düzelt" gibi komutları doğrudan işleyebilir.
 
 ---
 
-## License
-
-MIT © 2026
+## 📄 License
+MIT © 2026 - [Yasin Ozdogan](https://github.com/yasinozdgnn)

@@ -256,8 +256,6 @@ export class AgentPool {
     };
   }
   
-
-  
   reset() {
     this.stop();
     this.agents = [];

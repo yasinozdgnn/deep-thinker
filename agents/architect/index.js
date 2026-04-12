@@ -1,4 +1,4 @@
-import { callGLM, extractCodeFromResponse } from '../../helpers/index.js';
+import { callGLM, extractCodeFromResponse, robustJSONParse } from '../../helpers/index.js';
 import {
   createEmptyBlueprint,
   validateBlueprint,
@@ -62,6 +62,88 @@ export class ArchitectAgent {
     return blueprint;
   }
 
+  async runShardedAnalysis(task) {
+    this.log(`🧩 Starting Sharded Architectural Analysis...`);
+    
+    // Step 1: Rapid Component Inventory (File Tree)
+    const inventory = await this.generateComponentInventory(task);
+    this.log(`🗂️ Discovered ${inventory.files ? inventory.files.length : 0} components.`);
+
+    const projectName = this.extractProjectName(task) || 'Sharded Project';
+    const shardedBlueprint = createEmptyBlueprint(projectName);
+    shardedBlueprint.architecture = inventory.architecture || shardedBlueprint.architecture;
+    shardedBlueprint.tech_stack = inventory.tech_stack || inventory.architecture?.tech_stack || this.config.defaultTechStack;
+    shardedBlueprint.execution_steps = [];
+
+    // Step 2: Micro-Design for EACH component separately
+    if (inventory.files && Array.isArray(inventory.files)) {
+      for (let i = 0; i < inventory.files.length; i++) {
+          const file = inventory.files[i];
+          this.log(`📐 [ARCHITECT ${i+1}/${inventory.files.length}] Designing: ${file.path}`);
+          
+          const componentPlan = await this.designSingleComponent(file, task, inventory.architecture);
+          shardedBlueprint.execution_steps.push({
+              name: `Design & Implement: ${file.path}`,
+              tasks: [componentPlan.prompt]
+          });
+      }
+    }
+
+    return shardedBlueprint;
+  }
+
+  async generateComponentInventory(task) {
+    const prompt = `Persona: Principal Systems Architect
+Task: Analyze this request and design a universal file inventory: "${task}"
+
+STRICT CONSTRAINTS:
+1. Identify the PRIMARY LANGUAGE and FRAMEWORKS required (e.g. Rust, Go, Python/Django, Vue.js, etc.).
+2. Design a professional directory structure and file set.
+3. For UI tasks, ensure "Premium, Modern, Neon/Cyberpunk" aesthetics are specified.
+
+Return ONLY a raw JSON object:
+{
+  "tech_stack": ["Language", "Framework1", "LibraryX"],
+  "architecture": "Clean/Layered/Modular description",
+  "files": [
+    { "path": "string", "purpose": "string" }
+  ]
+}`;
+    const response = await this.askLLM(prompt);
+    
+    // Use the robust parser instead of direct JSON.parse
+    const parsed = this.parseJSONResponse(response, 'full');
+    if (!parsed || !parsed.files) {
+        console.error("🔴 [ARCHITECT] Component Inventory Parse FAILURE.");
+        console.error("RAW RESPONSE FROM LLM:", response);
+        throw new Error("Failed to parse component inventory JSON from LLM response.");
+    }
+    return parsed;
+  }
+
+  async designSingleComponent(file, originalTask, globalContext) {
+    const prompt = `Persona: Senior Solutions Architect
+Task: Design the implementation strategy for the file: ${file.path}.
+Purpose: ${file.purpose}.
+Global Context: ${originalTask}.
+Tech Stack: ${JSON.stringify(globalContext)}.
+
+STRICT INSTRUCTIONS:
+1. Provide DETAILED technical instructions. No "concise" notes.
+2. Specify exact CSS animations, keyframes, and color tokens (Neon/Cyberpunk theme).
+3. Define the internal logic (State handling, event listeners, API interactions).
+4. Ensure the output follows SOLID and DRY principles.
+5. If it's a UI component, describe the "Premium UX" details (Transitions, hover effects).
+
+Return ONLY the technical instruction set for the Coder.`;
+    const response = await this.askLLM(prompt);
+    return { path: file.path, prompt: response };
+  }
+
+  async askLLM(prompt) {
+    return await callGLM(prompt);
+  }
+
   async layeredAnalysis(userTask, projectContext) {
     this.log('🔍 Running layered analysis...');
 
@@ -83,18 +165,32 @@ export class ArchitectAgent {
     const presentationLayerResponse = await callGLM(presentationLayerPrompt);
     const presentationLayer = this.parseJSONResponse(presentationLayerResponse, 'frontend');
 
-    const projectName = this.extractProjectName(userTask) || 'New Project';
-    const mergePrompt = buildMergePrompt(dataLayer, logicLayer, presentationLayer, projectName);
-    const mergedResponse = await callGLM(mergePrompt);
+    const safeTask = (userTask && typeof userTask === 'string') ? userTask : 'New Project';
+    const projectName = this.extractProjectName(safeTask) || 'New Project';
+    
+    let blueprint = null;
+    try {
+      const mergePrompt = buildMergePrompt(dataLayer, logicLayer, presentationLayer, projectName);
+      const mergedResponse = await callGLM(mergePrompt);
+      blueprint = this.parseJSONResponse(mergedResponse, 'full');
+    } catch (e) {
+      this.log(`⚠️ Merge phase failed or timed out: ${e.message}. Using fallback synthesis.`);
+    }
 
-    let blueprint = this.parseJSONResponse(mergedResponse, 'full');
-
+    // ROBUST FALLBACK: If merge failed, synthesize from individual layers
     if (!blueprint || !blueprint.project_name) {
+      this.log('🛠️ Synthesizing blueprint from analyzed layers...');
       blueprint = createEmptyBlueprint(projectName);
-      blueprint.architecture.database = dataLayer;
-      blueprint.architecture.backend = logicLayer;
-      blueprint.architecture.frontend = presentationLayer;
-      blueprint.tech_stack = this.config.defaultTechStack;
+      blueprint.architecture = {
+        database: dataLayer || { tables: [] },
+        backend: logicLayer || { services: [], endpoints: [] },
+        frontend: presentationLayer || { component_tree: [], routes: [] }
+      };
+      
+      // Auto-populate tech stack from project context or defaults
+      blueprint.tech_stack = projectContext.techStack || this.config.defaultTechStack;
+      
+      // Ensure we have at least basic execution steps
       blueprint.execution_steps = this.generateDefaultSteps(blueprint);
     }
 
@@ -119,40 +215,19 @@ export class ArchitectAgent {
   }
 
   parseJSONResponse(response, expectedType = 'full') {
-    try {
-      // First try standard extraction (handles markdown code blocks)
-      const extracted = extractCodeFromResponse(response);
-
-      if (extracted) {
-        try {
-          const parsed = JSON.parse(extracted);
-          if (expectedType === 'database' && parsed.database) return parsed.database;
-          if (expectedType === 'backend' && parsed.backend) return parsed.backend;
-          if (expectedType === 'frontend' && parsed.frontend) return parsed.frontend;
-          return parsed;
-        } catch (e) {
-          // Continue to fallback
-        }
-      }
-
-      // Fallback: Regex matching
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-
-        if (expectedType === 'database' && parsed.database) return parsed.database;
-        if (expectedType === 'backend' && parsed.backend) return parsed.backend;
-        if (expectedType === 'frontend' && parsed.frontend) return parsed.frontend;
-
-        return parsed;
-      }
-    } catch (e) {
-      this.log(`⚠️ JSON parse error: ${e.message}`);
-      // Return empty structures if parsing failed but expectedType implies specific part
-      if (expectedType === 'database') return { tables: [] };
-      if (expectedType === 'backend') return { services: [], endpoints: [] };
-      if (expectedType === 'frontend') return { component_tree: [], routes: [] };
+    const parsed = robustJSONParse(response);
+    if (parsed) {
+      if (expectedType === 'database' && parsed.database) return parsed.database;
+      if (expectedType === 'backend' && parsed.backend) return parsed.backend;
+      if (expectedType === 'frontend' && parsed.frontend) return parsed.frontend;
+      return parsed;
     }
+    
+    // Fallback for empty structures if parsing failed but expectedType implies specific part
+    if (expectedType === 'database') return { tables: [] };
+    if (expectedType === 'backend') return { services: [], endpoints: [] };
+    if (expectedType === 'frontend') return { component_tree: [], routes: [] };
+    
     return null;
   }
 
@@ -163,7 +238,7 @@ export class ArchitectAgent {
     ];
 
     for (const pattern of patterns) {
-      const match = task.match(pattern);
+      const match = (task && typeof task === 'string') ? task.match(pattern) : null;
       if (match) {
         return match[1].trim().replace(/^(bir|an?)\s+/i, '');
       }
@@ -222,15 +297,19 @@ export class ArchitectAgent {
       fixed.architecture = createEmptyBlueprint().architecture;
     }
 
-    // Ensure execution_steps is an array
+    // Ensure execution_steps is an array and contains strings
     if (!Array.isArray(fixed.execution_steps)) {
       if (typeof fixed.execution_steps === 'string') {
-        // Try to split logic if it looks like a list
         fixed.execution_steps = fixed.execution_steps.split('\n').filter(s => s.trim().length > 0);
       } else {
         fixed.execution_steps = this.generateDefaultSteps(fixed);
       }
     }
+
+    // Double check each step is a string
+    fixed.execution_steps = (fixed.execution_steps || []).map(s => 
+      (s && typeof s === 'string') ? s : (typeof s === 'object' ? JSON.stringify(s) : String(s))
+    );
 
     // Fallback if still empty after fix attempts
     if (fixed.execution_steps.length === 0) {
@@ -344,7 +423,10 @@ ${generateFlowchart(safeSteps)}
 
 ### Step List
 
-${safeSteps.map((step, i) => `${i + 1}. ${step.replace(/^\d+\.\s*/, '')}`).join('\n')}
+${safeSteps.map((step, i) => {
+  const stepText = (typeof step === 'string') ? step : String(step);
+  return `${i + 1}. ${stepText.replace(/^\d+\.\s*/, '')}`;
+}).join('\n')}
 
 ---
 
