@@ -10,9 +10,10 @@ import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import dotenv from 'dotenv';
 
-// Only load .env if API key is missing (e.g. local test without MCP config)
+// Only load .env if no API key is already in environment
 // And suppress stdout because dotenv v17+ prints noisy logs that break MCP JSON-RPC
-if (!process.env.OPENROUTER_API_KEY) {
+const hasAnyKey = process.env.OPENROUTER_API_KEY || process.env.ZEN_API_KEY || process.env.GEMINI_API_KEY;
+if (!hasAnyKey) {
   const originalStdoutWrite = process.stdout.write;
   process.stdout.write = () => true; // Mute stdout
   try {
@@ -42,7 +43,7 @@ import { ToolOrchestrator, RetryManager, ValidationEngine } from "./orchestrator
 import { SelfImprovement, StrategyOptimizer, PatternLearner } from "./learning/index.js";
 import { TaskDecomposer } from "./decomposer/index.js";
 import { AgentCoordinator } from "./agents/index.js";
-import { callGLM, extractCodeFromResponse, robustJSONParse } from "./helpers/index.js";
+import { callAI, extractCodeFromResponse, robustJSONParse } from "./helpers/index.js";
 import { readFileContent, writeFileContent } from "./helpers/index.js";
 import { buildToolDetectionPrompt } from "./prompts/index.js";
 import { setToolExecutor } from "./handlers/agent.js";
@@ -124,7 +125,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
 
 export async function autoDetectTool(prompt) {
   const toolPrompt = buildToolDetectionPrompt(prompt);
-  const response = await callGLM(toolPrompt);
+  const response = await callAI(toolPrompt);
 
   if (!response || typeof response !== "string") {
     return {
@@ -190,7 +191,7 @@ export async function executeToolLogic(name, args, isInternal = false) {
       const code = await readFileContent(args.filePath);
       const framework = args.framework || "jest";
       const prompt = `Generate comprehensive unit tests for this code using ${framework}:\n\`\`\`\n${code}\n\`\`\``;
-      const result = await callGLM(prompt);
+      const result = await callAI(prompt);
       const testPath = args.filePath.replace(/(\.\w+)$/, `.test$1`);
       const testCode = extractCodeFromResponse(result);
       await writeFileContent(testPath, testCode);
@@ -207,7 +208,7 @@ export async function executeToolLogic(name, args, isInternal = false) {
     case "generate_docs": {
       const code = await readFileContent(args.filePath);
       const prompt = `Add JSDoc/TSDoc documentation to all functions and classes in this code:\n\`\`\`\n${code}\n\`\`\`\n\nReturn only the documented code.`;
-      const result = await callGLM(prompt);
+      const result = await callAI(prompt);
       const newCode = extractCodeFromResponse(result);
       await writeFileContent(args.filePath, newCode);
       return {
@@ -235,7 +236,7 @@ export async function executeToolLogic(name, args, isInternal = false) {
         console.warn(`Warning: Could not read package.json: ${error.message}`);
       }
       const prompt = `Create a comprehensive README.md for this project.\n\nFiles: ${fileList}${packageInfo}`;
-      const result = await callGLM(prompt);
+      const result = await callAI(prompt);
       const readme = extractCodeFromResponse(result) || result;
       await writeFileContent(
         path.join(args.projectPath, "README.md"),
@@ -254,7 +255,7 @@ export async function executeToolLogic(name, args, isInternal = false) {
     // === PROJECT MANAGEMENT ===
     case "create_project": {
       const prompt = `Create a ${args.projectType} project boilerplate structure for "${args.projectName}". Include all necessary files with their contents. Format as JSON: { "files": [{ "path": "relative/path", "content": "file content" }] }`;
-      const result = await callGLM(prompt);
+      const result = await callAI(prompt);
 
       try {
         const jsonMatch = result.match(/\{[\s\S]*\}/);
@@ -293,7 +294,7 @@ export async function executeToolLogic(name, args, isInternal = false) {
         cwd: args.projectPath,
       });
       const prompt = `Explain what the npm package "${args.packageName}" does and provide a basic usage example.`;
-      const result = await callGLM(prompt);
+      const result = await callAI(prompt);
       return {
         content: [
           {
@@ -307,7 +308,7 @@ export async function executeToolLogic(name, args, isInternal = false) {
     // === DATABASE TOOLS ===
     case "analyze_query": {
       const prompt = `Analyze this ${args.dbType} SQL query for performance and suggest optimizations:\n\`\`\`sql\n${args.query}\n\`\`\`\n\nProvide:\n1. Query execution plan analysis\n2. N+1 query detection\n3. Index recommendations\n4. Performance bottlenecks\n5. Optimized query version`;
-      const result = await callGLM(prompt);
+      const result = await callAI(prompt);
       return {
         content: [
           {
@@ -335,7 +336,7 @@ export async function executeToolLogic(name, args, isInternal = false) {
       }
       const outputFormat = args.outputFormat || "markdown";
       const prompt = `Document this database schema in ${outputFormat} format. Include:\n1. All tables and columns\n2. Foreign key relationships\n3. Index list\n4. ER diagram (use PlantUML)\n5. Schema explanations\n\nSchema:\n\`\`\`\n${schemaContent}\n\`\`\``;
-      const result = await callGLM(prompt);
+      const result = await callAI(prompt);
       return {
         content: [
           {
@@ -362,7 +363,7 @@ export async function executeToolLogic(name, args, isInternal = false) {
         };
       }
       const prompt = `Suggest optimal indexes for this ${args.dbType} database schema. ${args.queryPatterns ? `Query patterns: ${args.queryPatterns}` : ""}\n\nProvide:\n1. Which columns to index\n2. Composite index recommendations\n3. Index size estimation\n4. Write vs read tradeoff analysis\n5. SQL CREATE INDEX statements\n\nSchema:\n\`\`\`\n${schemaContent}\n\`\`\``;
-      const result = await callGLM(prompt);
+      const result = await callAI(prompt);
       return {
         content: [
           {
@@ -389,7 +390,7 @@ export async function executeToolLogic(name, args, isInternal = false) {
         };
       }
       const prompt = `Review this ${args.dbType} migration file for safety and best practices. ${args.context ? `Context: ${args.context}` : ""}\n\nProvide:\n1. Potential data loss risks\n2. Rollback safety assessment\n3. Downwards compatibility check\n4. Performance impact\n5. Best practice violations\n\nMigration:\n\`\`\`\n${migrationContent}\n\`\`\``;
-      const result = await callGLM(prompt);
+      const result = await callAI(prompt);
       return {
         content: [
           {
@@ -406,7 +407,7 @@ export async function executeToolLogic(name, args, isInternal = false) {
     // === CI/CD & DEVOPS TOOLS ===
     case "generate_dockerfile": {
       const prompt = `Generate an optimized Dockerfile for a ${args.framework} project. Target: ${args.target}, Optimization: ${args.optimization || "multi-stage"}\n\nProvide:\n1. Optimized Dockerfile with multi-stage build\n2. .dockerignore file\n3. docker-compose.yml if needed\n4. Build and run commands\n5. Security considerations`;
-      const result = await callGLM(prompt);
+      const result = await callAI(prompt);
       const dockerfile = extractCodeFromResponse(result);
       const dockerfilePath = path.join(args.projectPath, "Dockerfile");
       await writeFileContent(dockerfilePath, dockerfile);
@@ -422,7 +423,7 @@ export async function executeToolLogic(name, args, isInternal = false) {
 
     case "generate_github_actions": {
       const prompt = `Generate GitHub Actions CI/CD workflow for a ${args.language} project. Workflow type: ${args.workflowType}\n\nProvide:\n1. Complete GitHub Actions workflow YAML\n2. Multi-environment support\n3. Cache strategies\n4. Secret management examples\n5. Best practices`;
-      const result = await callGLM(prompt);
+      const result = await callAI(prompt);
       const workflow = extractCodeFromResponse(result);
       const workflowPath = path.join(
         args.projectPath,
@@ -446,7 +447,7 @@ export async function executeToolLogic(name, args, isInternal = false) {
     case "k8s_manifest": {
       const resources = args.resources || "Deployment,Service,Ingress";
       const prompt = `Generate Kubernetes manifests for deployment. Type: ${args.deploymentType}, Resources: ${resources}\n\nProvide:\n1. deployment.yaml\n2. service.yaml\n3. ingress.yaml\n4. configmap.yaml (if needed)\n5. hpa.yaml for horizontal pod autoscaling\n\nFollow Kubernetes best practices with health checks, rolling updates, and resource limits.`;
-      const result = await callGLM(prompt);
+      const result = await callAI(prompt);
       const k8sDir = path.join(args.projectPath, "k8s");
       await fs.mkdir(k8sDir, { recursive: true });
 

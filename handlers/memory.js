@@ -1,6 +1,6 @@
 import { CodeIndexer } from '../memory/CodeIndexer.js';
 import { SimpleVectorStore } from '../memory/SimpleVectorStore.js';
-import { callGLM } from '../helpers/index.js';
+import { callAI } from '../helpers/index.js';
 import path from 'path';
 
 export const memoryHandlers = {
@@ -50,7 +50,7 @@ ${pool.map((d, i) => `${i}. [${d.id}] Tags: ${d.tags.join(', ')} Summary: ${d.su
 
 Return the IDs of the top 3 most relevant files, explained briefly.`;
 
-    const rankingResult = await callGLM(rankingPrompt);
+    const rankingResult = await callAI(rankingPrompt);
 
     return {
       content: [{

@@ -95,6 +95,9 @@ export class SandboxManager {
         return { fileName: 'script.sh', command: 'bash', args: [] };
       case 'php':
         return { fileName: 'script.php', command: 'php', args: [] };
+      case 'go':
+      case 'golang':
+        return { fileName: 'main.go', command: 'go', args: ['run'] };
       default:
         throw new Error(`Unsupported language: ${language}`);
     }

@@ -1,24 +1,23 @@
-export const TOOL_LIST = `=== PROJECT-WIDE TOOLS (Autonomous Swarm) ===
-1. delegate_to_swarm - **SUPER TOOL**: Use for any project-wide task, finding/fixing bugs across multiple files, building features, or general "fix project" requests. If NO specific file is mentioned in the prompt, USE THIS for bug finding. Turkish: "projeyi düzelt", "hataları bul", "yap", "oluştur".
+export const TOOL_LIST = `=== PROJE ÇAPLI ARAÇLAR (API Tabanlı) ===
+1. delegate_to_swarm - **KOD ÜRETİMİ VE PROJE İŞLERİ İÇİN #1**: Tüm kod yazma, refactoring, hata bulma/düzeltme, özellik geliştirme görevleri için kullan. Architect → Coder → QA zinciri ile çalışır. (API, CLI değil)
+2. read_project - Proje yapısını tara ve önemli dosyaları oku.
+3. analyze_directory - Bir klasördeki tüm kodu mimari, güvenlik veya performans için analiz et.
+4. analyze_architecture - Genel sistem tasarımını gözden geçir.
 
-=== PROJECT-WIDE ANALYSIS ===
-2. read_project - Scan project structure and important files. Best for "what is this project?" or "list files".
-3. analyze_directory - Analyze all code in a folder for architecture, security, or performance.
-4. analyze_architecture - Review overall system design.
+=== TEK DOSYA İŞLEMLERİ (filePath gerekli) ===
+5. deep_think_code - Belirli bir dosyaya kod yaz/kaydet. filePath verilmişse kullan.
+6. read_file - Belirli bir dosyayı oku.
+7. write_file - Belirli bir dosyaya içerik yaz/kaydet.
+8. find_bugs - [Tek Dosya] Belirli bir dosyayı hatalar için analiz et.
+9. refactor_code - [Tek Dosya] Belirli bir dosyayı yeniden düzenle/düzelt.
+10. explain_code - [Tek Dosya] Bir dosyayı açıkla.
+11. add_comments - [Tek Dosya] Bir dosyaya yorum ekle.
+12. generate_tests - [Tek Dosya] Bir dosya için test oluştur.
 
-=== SINGLE-FILE OPERATIONS (Requires filePath) ===
-5. read_file - Read specific file contents.
-6. write_file - Save content to a specific file.
-7. find_bugs - [Single-File] Analyze a SPECIFIC file for errors. Use only if a file path is provided!
-8. refactor_code - [Single-File] Refactor/Fix a specific file.
-9. explain_code - [Single-File] Explain one file.
-10. add_comments - [Single-File] Add comments to one file.
-11. generate_tests - [Single-File] Create tests for one file.
-
-=== OTHER TOOLS ===
-12. deep_think_chat - General questions.
-13. list_directory - List files in a specific folder.
-14. search_in_files - Search for text patterns.`;
+=== DİĞER ===
+13. deep_think_chat - Genel sorular ve sohbet için.
+14. list_directory - Belirli bir klasördeki dosyaları listele.
+15. search_in_files - Metin desenlerini ara.`;
 
 export const CODE_QUALITY_REQUIREMENTS = `CODE QUALITY REQUIREMENTS (MANDATORY):
 - SOLID Principles: SRP (Single Responsibility), OCP, LSP, ISP, DIP.
@@ -41,9 +40,11 @@ export function buildToolDetectionPrompt(userPrompt) {
 Task: Select the BEST tool for the user's request. 
 
 STRICT DISPATCHING RULES:
-1. **Parameter Guard**: If a tool is labeled [Single-File] (like find_bugs, read_file) but the user DID NOT specify a file path, DO NOT choose it. 
-2. **Project Fallback**: If the user asks a general question ("hata var mı?", "projeyi incele") without a file, choose a PROJECT-WIDE tool (delegate_to_swarm or read_project).
-3. **Handle TR (Turkish)**: Map "hata var mı", "sorunları bul" to delegate_to_swarm if no file is mentioned.
+1. **Parameter Guard**: If a tool is labeled [Tek Dosya] (like find_bugs, read_file) but the user DID NOT specify a file path, DO NOT choose it.
+2. **API Priority**: API tabanlı araçları (delegate_to_swarm, deep_think_chat) her zaman öncelikli kullan. Harici CLI araçları kullanma.
+3. **Code Generation = Swarm**: Tüm kod yazma, refactoring, hata bulma/düzeltme, özellik geliştirme gibi görevler için **delegate_to_swarm** kullan. Architect → Coder → QA zinciri kaliteli kod üretir.
+4. **Only use deep_think_code when**: Kullanıcı açıkça bir dosya yolu (filePath) belirtmişse ve tek bir dosyaya yazılacaksa kullanılabilir. Aksi halde delegate_to_swarm tercih et.
+5. **Turkish Mapping**: "kod yaz", "ekran yap", "hata var mı", "sorunları bul", "login yap", "özellik ekle" → hep **delegate_to_swarm**. Genel sorular ("bu nedir", "nasıl çalışır") → deep_think_chat.
 
 User Request: "${userPrompt}"
 

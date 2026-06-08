@@ -2,7 +2,7 @@ import http from "http";
 import https from "https";
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const OPENROUTER_API_URL = (process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1/chat/completions').replace(/\/+$/, '');
 const PORT = process.env.PROXY_PORT || 3456;
 
 const server = http.createServer((req, res) => {

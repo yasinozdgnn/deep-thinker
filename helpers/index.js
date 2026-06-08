@@ -1,4 +1,4 @@
-export { callGLM, callGLMRaw, callGLMWithThinking, extractCodeFromResponse } from './glm-client.js';
+export { callAI, callAIRaw, callAIWithThinking, extractCodeFromResponse } from './ai-client.js';
 export { 
   readFileContent, 
   writeFileContent, 

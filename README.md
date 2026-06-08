@@ -136,10 +136,194 @@ graph TD
 
 ---
 
+## 📋 All Tools (83+ Specialized)
+
+| Category | Tools |
+|----------|-------|
+| 🎯 **Core** | `deep_think_chat`, `deep_think_code`, `ask_question`, `analyze_task`, `detect_tool` |
+| 📁 **File Ops** | `read_file`, `write_file`, `list_directory`, `analyze_directory`, `search_in_files` |
+| 🔍 **Code Analysis** | `read_project`, `explain_code`, `find_bugs`, `security_scan`, `optimize_code`, `generate_tests`, `generate_docs`, `refactor_code` |
+| 🐙 **Git Ops** | `git_commit`, `git_push`, `git_pull`, `git_status`, `git_diff`, `git_branch`, `git_log`, `git_init` |
+| 🧪 **Testing** | `run_tests`, `generate_test_suite`, `validate_html`, `validate_json`, `lint_code` |
+| 🗄️ **Database** | `database_schema`, `optimize_query`, `generate_migration`, `seed_database`, `generate_indexes` |
+| 🚢 **DevOps** | `dockerize`, `generate_k8s_manifest`, `generate_terraform`, `ci_cd_pipeline`, `monitoring_config` |
+| 🔒 **Security** | `security_audit`, `vulnerability_scan`, `dependency_check`, `secret_scan`, `cors_check` |
+| 📡 **API** | `api_design`, `generate_api_doc`, `test_endpoint`, `mock_api` |
+| 🏗️ **Project** | `create_project`, `project_analysis`, `dependency_graph`, `project_health` |
+| 🤖 **Agent** | `plan_task`, `execute_plan`, `execute_mission`, `decompose_task`, `list_workflows`, `run_workflow`, `remember`, `recall`, `get_insights`, `execute_parallel`, `get_strategy_suggestion`, `analyze_performance` |
+| 📐 **Architect** | `design_system`, `analyze_architecture`, `generate_blueprint`, `visualize_architecture`, `get_blueprint_summary` |
+| 🐝 **Swarm** | `delegate_to_swarm` (multi-agent orchestration) |
+| 🧠 **Memory** | `index_codebase`, `semantic_search` |
+| 👁️ **Watcher** | `start_watcher`, `stop_watcher`, `watcher_status` |
+| 🏖️ **Sandbox** | `run_in_sandbox` (JS/Python/Bash/TS/PHP) |
+| 🚀 **OpenCode** | `opencode_run`, `opencode_run_with_thinking`, `opencode_go_run` |
+
+## 🤖 Agent Architecture & Communication
+
+### Agents
+
+| Agent | Role | Responsibility |
+|-------|------|----------------|
+| 🧠 **AgentCoordinator** | Orchestrator | Manages all agents, distributes tasks |
+| 🏗️ **AgentPool** | Worker Pool | 5 parallel agents, queuing, retries |
+| 📐 **Architect Agent** | System Designer | Multi-layered analysis, blueprint, tech stack selection |
+| 👨‍💻 **Coder Agent (Codey)** | Principal Engineer | Code generation, feedback loop, SOLID/DRY compliance |
+| 🧪 **QA Agent (Tester)** | QA Auditor | Code audit, dependency analysis, runtime testing |
+| 🧩 **Task Splitter** | Micro-Task Factory | Splits macro tasks into atomic tasks, generates TODO.md |
+| 👁️ **Proactive Watcher** | File Monitor | Monitors file changes, auto-checks |
+| 🛡️ **Self-Heal Engine** | Auto-Repair | Self-healing loop, error correction |
+
+### Inter-Agent Communication (Swarm Pipeline)
+
+```
+User
+  │
+  ▼
+┌─────────────────────────────────────────────────────┐
+│  🧠 AgentCoordinator / ToolOrchestrator              │
+│  • Task decomposition (TaskDecomposer)               │
+│  • Parallel execution (AgentPool)                    │
+│  • Circuit Breaker + Retry mechanism                 │
+│  • Validation engine                                 │
+└─────────────────────────────────────────────────────┘
+  │
+  ├── 📐 ARCHITECT PHASE ─────────────────────────────┐
+  │  1. Task analysis (sharded/multi-layer)            │
+  │  2. Tech stack selection                            │
+  │  3. Blueprint generation (components, API, DB)     │
+  │  4. ARCHITECTURE.md saved                           │
+  └────────────────────────────────────────────────────┘
+  │
+  ├── 🏭 TASK SPLITTER (Micro-Task Factory) ─────────┐
+  │  1. Macro steps → atomic tasks                     │
+  │  2. TODO.md generation (progress tracking)         │
+  └────────────────────────────────────────────────────┘
+  │
+  ├── 👨‍💻 CODER PHASE (Micro-Task Loop) ──────────────┐
+  │  For each atomic task:                              │
+  │  1. Coder generates code from blueprint + context   │
+  │  2. ⬅️ FEEDBACK: Coder → Architect                 │
+  │     (design flaws are reported back)                │
+  │  3. Files saved                                     │
+  │  4. TODO.md updated                                 │
+  └────────────────────────────────────────────────────┘
+  │
+  ├── 🧪 QA PHASE ────────────────────────────────────┐
+  │  1. Dependency audit (import/require/href/src)     │
+  │  2. Runtime testing (sandbox execution)             │
+  │  3. AI-powered code quality analysis               │
+  │  4. ⬅️ FEEDBACK: QA → Architect / QA → Coder       │
+  │     (HIGH severity issues auto-fixed)              │
+  └────────────────────────────────────────────────────┘
+  │
+  └── 🛡️ SELF-HEAL ──────────────────────────────────┐
+      1. File integrity check                           │
+      2. Missing file auto-regeneration                 │
+      3. Final report generation                        │
+      └─────────────────────────────────────────────────┘
+```
+
+### Swarm Feedback Mechanism
+
+```
+📐 Architect → Blueprint
+     │
+     ▼
+👨‍💻 Coder: "Design has a flaw! Need to change..."
+     │ feedback (target: 'architect')
+     ▼
+📐 Architect: Blueprint revised
+     │
+     ▼
+👨‍💻 Coder: Continues with revised blueprint
+     │
+     ▼
+🧪 QA: "Code 10/10, all checks passed!"
+     |
+     ├─ NO ERRORS → Final report
+     └─ HIGH SEVERITY ISSUE → 
+          QA → Coder: "critical fix needed"
+          Coder fixes the issue
+          QA re-audits
+```
+
+## 🚀 CLI Usage (Running on Your Computer)
+
+### Option 1: `deep-think` command (Recommended)
+```bash
+# In project directory
+cd ~/Desktop/deep-thinker
+
+# Make it a global command
+npm link
+
+# Now use from anywhere:
+deep-think
+# Or one-shot:
+deep-think "Build a login page for me"
+```
+
+### Option 2: Direct `node` (no npm link needed)
+```bash
+cd ~/Desktop/deep-thinker
+
+# Interactive mode:
+/usr/local/bin/node bin/cli.js
+
+# One-shot command:
+/usr/local/bin/node bin/cli.js "Build a login page for me"
+```
+
+### Option 3: Full Node.js path (if node not in PATH)
+```bash
+cd ~/Desktop/deep-thinker && /usr/local/bin/node bin/cli.js
+```
+
+### .env Configuration
+```env
+# ZEN API (recommended - free)
+AI_PROVIDER=zen
+ZEN_API_KEY=sk-xxx...n
+ZEN_MODEL=deepseek-v4-flash-free
+
+# Or OpenRouter:
+# AI_PROVIDER=openrouter
+# OPENROUTER_API_KEY=sk-xxx...
+```
+
+### Testing & Verification
+```bash
+# API connection test
+/usr/local/bin/node test_live.js
+
+# Swarm (multi-agent) test:
+/usr/local/bin/node -e "
+import { executeToolLogic } from './index.js';
+const r = await executeToolLogic('delegate_to_swarm', {
+  task: 'Create a hello.html file',
+  projectPath: process.cwd()
+});
+console.log(JSON.stringify(r));
+"
+
+# Full system test:
+/usr/local/bin/node test_full.js
+```
+
 ## 🇹🇷 Türkçe Dil Desteği (Turkish Support)
-Deep Thinker, Türkçe komutları ve niyetlerini (intent) otonom olarak anlar. "Bana bir giriş ekranı yap" veya "Kodu düzelt" gibi komutları doğrudan işleyebilir.
+Deep Thinker understands Turkish commands and intentions autonomously. Commands like "Bana bir giriş ekranı yap" (Build a login page) or "Kodu düzelt" (Fix the code) are processed directly.
 
 ---
 
-## 📄 License
-MIT © 2026 - [Yasin Ozdogan](https://github.com/yasinozdgnn)
+## 🧪 Test Report (Jun 08, 2026)
+
+| Test | Status | Details |
+|------|--------|---------|
+| ✅ `test_live.js` (API connection) | ✅ 26.1s | Zen API (deepseek-v4-flash-free) |
+| ✅ Login page generation (CLI) | ✅ 45.7s | login-demo.html (520 lines) |
+| ✅ Swarm (Architect + Coder + QA) | ✅ 100s | selam.html, 10/10 QA score |
+| ✅ Tool detection | ✅ 83 tools loaded | All categories available |
+| ✅ OpenCode tools | ✅ 3 tools | opencode_run, +thinking, go_run |
+| ⚠️ Go sandbox | ➖ Go not installed | Environment issue, not code bug |
+
+---

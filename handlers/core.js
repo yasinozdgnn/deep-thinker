@@ -1,10 +1,11 @@
-import { callGLM, callGLMWithThinking, extractCodeFromResponse, writeFileContent } from '../helpers/index.js';
-import { buildToolDetectionPrompt } from '../prompts/index.js';
+import { callAI, callAIWithThinking, extractCodeFromResponse, writeFileContent } from '../helpers/index.js';
+import { buildToolDetectionPrompt, CODE_QUALITY_REQUIREMENTS, PREMIUM_UI_GUIDELINES } from '../prompts/index.js';
+import { getFrameworkRules } from '../prompts/frameworks.js';
 
 // AI-powered tool detection
 async function autoDetectTool(prompt) {
   const toolPrompt = buildToolDetectionPrompt(prompt);
-  const response = await callGLM(toolPrompt);
+  const response = await callAI(toolPrompt);
 
   try {
     const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -39,9 +40,9 @@ export const coreHandlers = {
             `Reasoning: ${result.reasoning}\n\n` +
             `⏳ Executing ${result.tool}...\n\n` +
             `[If you want to use a different tool, specify it explicitly, e.g.:]\n` +
-            `@GLM-Thinker analyze_query SELECT * FROM users\n` +
-            `@GLM-Thinker security_scan ./src/auth.js\n` +
-            `@GLM-Thinker generate_dockerfile --framework react\n\n` +
+            `@DeepThink analyze_query SELECT * FROM users\n` +
+            `@DeepThink security_scan ./src/auth.js\n` +
+            `@DeepThink generate_dockerfile --framework react\n\n` +
             `[View all tools: https://github.com/YOUR_REPO/tree/main/README.md#tools]`,
         },
       ],
@@ -49,14 +50,34 @@ export const coreHandlers = {
   },
 
   deep_think_chat: async (args) => {
-    const content = await callGLM(args.prompt);
+    const content = await callAI(args.prompt);
+    const projectPath = args.projectPath || process.cwd();
+    
+    // Yanıtta kod bloğu var mı? Varsa otomatik kaydet
+    const codeBlocks = content.match(/```(?:\w+)?\n[\s\S]*?```/g);
+    if (codeBlocks) {
+      // Prompt'tan dosya adı tahmin et, bulamazsa varsayılan kullan
+      const extMatch = args.prompt.match(/\.(\w+)\s/); // .html, .js, .py gibi
+      const langMatch = content.match(/```(\w+)/);
+      const ext = extMatch ? extMatch[1] : (langMatch ? langMatch[1] : 'txt');
+      const fileName = `output-${Date.now()}.${ext}`;
+      const filePath = `${projectPath}/${fileName}`;
+      
+      const code = extractCodeFromResponse(content);
+      await writeFileContent(filePath, code);
+      
+      return {
+        content: [{ type: "text", text: `[Deep Thinking]\n\n📄 **Dosya kaydedildi:** \`${fileName}\`\n\n${content}` }],
+      };
+    }
+    
     return {
       content: [{ type: "text", text: `[Deep Thinking]\n\n${content}` }],
     };
   },
 
   deep_think_verbose: async (args) => {
-    const result = await callGLMWithThinking(args.prompt);
+    const result = await callAIWithThinking(args.prompt);
     return {
       content: [
         {
@@ -68,14 +89,48 @@ export const coreHandlers = {
   },
 
   deep_think_code: async (args) => {
-    const glmResponse = await callGLM(args.prompt);
+    // CoderAgent'in kalite prompt'larını kullan — tıpkı swarm'daki gibi
+    const stackRules = args.stack ? getFrameworkRules(
+      Array.isArray(args.stack) ? args.stack : args.stack.split(',').map(s => s.trim())
+    ) : '';
+    
+    const coderPrompt = `Persona: Principal Software Engineer
+Goal: Implement the requested code with Zero-Bug/Production-Grade quality.
+
+${CODE_QUALITY_REQUIREMENTS}
+
+${PREMIUM_UI_GUIDELINES}
+
+${stackRules}
+
+Task: ${args.prompt}
+
+OUTPUT FORMAT:
+Return ONLY the code inside a markdown code block with the appropriate language tag.
+
+\`\`\`language
+// your code here
+\`\`\``;
+
+    const glmResponse = await callAI(coderPrompt);
     const code = extractCodeFromResponse(glmResponse);
-    await writeFileContent(args.filePath, code);
+    
+    // FilePath yoksa otomatik oluştur
+    let filePath = args.filePath;
+    if (!filePath) {
+      const projectPath = args.projectPath || process.cwd();
+      const extMatch = args.prompt.match(/\.(\w+)\b/);
+      const langMatch = glmResponse.match(/```(\w+)/);
+      const ext = extMatch ? extMatch[1] : (langMatch ? langMatch[1] : 'txt');
+      filePath = `${projectPath}/output-${Date.now()}.${ext}`;
+    }
+    
+    await writeFileContent(filePath, code);
     return {
       content: [
         {
           type: "text",
-          text: `[Deep Thinking]\n\nFile saved: ${args.filePath}\n\n${glmResponse}`,
+          text: `[Deep Thinking - Coder Enhanced]\n\n📄 **Dosya kaydedildi:** \`${filePath}\`\n\n${glmResponse}`,
         },
       ],
     };

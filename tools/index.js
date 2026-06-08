@@ -10,11 +10,12 @@ import { apiTools } from './api.js';
 import { projectTools } from './project.js';
 import { agentTools } from './agent.js';
 import { architectTools } from './architect.js';
+import { opencodeTools } from './opencode.js';
 
 const executionTools = [
   {
     name: "run_in_sandbox",
-    description: "Safely execute a code snippet in an isolated sandbox environment. Supported languages: javascript, python, bash, typescript.",
+    description: "Safely execute a code snippet in an isolated sandbox environment. Supported languages: javascript, python, bash, typescript, php, go (golang).",
     inputSchema: {
       type: "object",
       properties: {
@@ -141,7 +142,8 @@ export const tools = [
   ...swarmTools,
   ...memoryTools,
   ...watcherTools,
-  ...architectTools
+  ...architectTools,
+  ...opencodeTools
 ];
 
 export {
@@ -160,5 +162,6 @@ export {
   swarmTools,
   memoryTools,
   watcherTools,
-  architectTools
+  architectTools,
+  opencodeTools
 };

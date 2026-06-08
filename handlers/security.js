@@ -1,4 +1,4 @@
-import { callGLM } from '../helpers/index.js';
+import { callAI } from '../helpers/index.js';
 
 export const securityHandlers = {
     security_scan: async (args) => {

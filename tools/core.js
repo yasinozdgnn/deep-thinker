@@ -37,14 +37,14 @@ export const coreTools = [
   },
   {
     name: "deep_think_code",
-    description: "Generate code with Deep Thinking and save to file.",
+    description: "Generate code with Deep Thinking and save to file. Dosya yolu belirtilmezse otomatik oluşturur.",
     inputSchema: {
       type: "object",
       properties: {
         prompt: { type: "string", description: "Code task or request" },
-        filePath: { type: "string", description: "Absolute file path to save" },
+        filePath: { type: "string", description: "Absolute file path to save (optional — auto-generated if omitted)" },
       },
-      required: ["prompt", "filePath"],
+      required: ["prompt"],
     },
   },
 ];

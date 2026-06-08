@@ -38,10 +38,14 @@ export class TaskSplitter {
   }
 
   static createAtomicTask(title, architecture, layer = 'logic') {
+    // Architecture'ın tamamını değil, sadece proje adı ve stack özetini gönder
+    const stackSummary = Array.isArray(architecture?.tech_stack)
+      ? architecture.tech_stack.join(', ')
+      : '';
     return {
         id: `${layer}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
         title,
-        prompt: `Implement this specific part: ${title}. ${layer === 'frontend' ? 'Focus on modern UI/UX.' : ''} Context: ${JSON.stringify(architecture)}`,
+        prompt: `Implement this specific part: ${title}. ${layer === 'frontend' ? 'Focus on modern UI/UX.' : ''} Stack: ${stackSummary}`,
         targetLayer: layer
     };
   }

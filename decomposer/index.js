@@ -15,10 +15,10 @@ export const DECOMPOSITION_CONFIG = {
 };
 
 export class TaskDecomposer {
-  constructor(projectPath = null, glmClient = null) {
+  constructor(projectPath = null, aiClient = null) {
     this.projectPath = projectPath;
     this.memory = new MemoryManager(projectPath);
-    this.glmClient = glmClient;
+    this.aiClient = aiClient;
     this.decompositionCache = new Map();
   }
   
@@ -27,8 +27,8 @@ export class TaskDecomposer {
     this.memory.setProject(projectPath);
   }
   
-  setGLMClient(client) {
-    this.glmClient = client;
+  setAIClient(client) {
+    this.aiClient = client;
   }
   
   async decompose(task, context = {}) {
@@ -214,7 +214,7 @@ export class TaskDecomposer {
   async generateSubtasks(task, context, complexity) {
     const subtasks = [];
     
-    if (this.glmClient) {
+    if (this.aiClient) {
       const aiSubtasks = await this.generateSubtasksWithAI(task, context, complexity);
       return aiSubtasks;
     }
@@ -291,7 +291,7 @@ Return ONLY the JSON array, no other text.
 `;
 
     try {
-      const response = await this.glmClient.chat(prompt);
+      const response = await this.aiClient.chat(prompt);
       const parsed = JSON.parse(response);
       
       return parsed.map((item, index) => ({

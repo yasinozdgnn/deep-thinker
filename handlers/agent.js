@@ -1,7 +1,7 @@
 import { taskPlanner } from '../planner/index.js';
 import { taskDecomposer } from '../decomposer/index.js';
 import { listWorkflows, getWorkflow } from '../orchestrator/index.js';
-import { callGLM, extractCodeFromResponse } from '../helpers/index.js'; // Added extractCodeFromResponse
+import { callAI, extractCodeFromResponse } from '../helpers/index.js'; // Added extractCodeFromResponse
 
 let toolExecutor = null;
 
@@ -29,6 +29,7 @@ Available Tools & Key Args:
 - create_project (projectName, projectType[next|react|express])
 - design_system (projectName) -> Use this for architecture design
 - delegate_to_swarm (task) -> Use this for complex implementation features
+- opencode_run (task, projectPath, model) -> Delegate to OpenCode CLI for coding/refactoring
 - deep_think_code (prompt, filePath)
 - write_file (TargetFile, CodeContent)
 - read_file (AbsolutePath)
@@ -42,7 +43,7 @@ Response Format:
   }
 ]
 `;
-            const response = await callGLM(prompt);
+            const response = await callAI(prompt);
             const jsonStr = extractCodeFromResponse(response) || response;
             const parsed = JSON.parse(jsonStr.replace(/```json|```/g, '').trim());
 

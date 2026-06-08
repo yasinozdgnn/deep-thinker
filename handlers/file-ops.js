@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { readFileContent, writeFileContent, searchFiles, validateFilePath } from '../helpers/index.js';
-import { callGLM } from '../helpers/index.js';
+import { callAI } from '../helpers/index.js';
 import { codeAnalysisHandlers } from './code-analysis.js';
 import { ProjectState } from './state.js';
 
@@ -195,7 +195,7 @@ export const fileOpsHandlers = {
 
     const prompt = `${analysisPrompts[analysisType] || analysisPrompts.overview}\n\nCodebase (${fileCount} files):\n\`\`\`\n${allCode}\n\`\`\``;
 
-    const result = await callGLM(prompt);
+    const result = await callAI(prompt);
 
     // AUTO-FIX LOGIC
     let autoFixReport = "";
@@ -216,7 +216,7 @@ export const fileOpsHandlers = {
       Analysis Result:
       ${result}`;
 
-      const fixPlanRaw = await callGLM(fixPrompt);
+      const fixPlanRaw = await callAI(fixPrompt);
       let fixPlan = [];
       try {
         const jsonMatch = fixPlanRaw.match(/\[[\s\S]*\]/);
@@ -319,7 +319,7 @@ export const fileOpsHandlers = {
                 Did the auto-fix introduce any new syntax errors, logic issues, or TYPE MISMATCHES with imports? 
                 Briefly confirm if it is clean or warn if issues remain.`;
 
-            const review = await callGLM(reviewPrompt);
+            const review = await callAI(reviewPrompt);
             autoFixReport += `\n**${path.basename(file)}**: ${review}\n`;
           } catch { }
         }

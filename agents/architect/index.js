@@ -1,4 +1,4 @@
-import { callGLM, extractCodeFromResponse, robustJSONParse } from '../../helpers/index.js';
+import { callAI, extractCodeFromResponse, robustJSONParse } from '../../helpers/index.js';
 import {
   createEmptyBlueprint,
   validateBlueprint,
@@ -142,7 +142,7 @@ Return ONLY the technical instruction set for the Coder.`;
   }
 
   async askLLM(prompt) {
-    return await callGLM(prompt);
+    return await callAI(prompt);
   }
 
   async layeredAnalysis(userTask, projectContext) {
@@ -150,12 +150,12 @@ Return ONLY the technical instruction set for the Coder.`;
 
     this.log('  📊 Data layer analysis...');
     const dataLayerPrompt = buildLayerPrompt('data', userTask);
-    const dataLayerResponse = await callGLM(dataLayerPrompt);
+    const dataLayerResponse = await callAI(dataLayerPrompt);
     const dataLayer = this.parseJSONResponse(dataLayerResponse, 'database');
 
     this.log('  ⚙️ Logic layer analysis...');
     const logicLayerPrompt = buildLayerPrompt('logic', userTask, { database: dataLayer });
-    const logicLayerResponse = await callGLM(logicLayerPrompt);
+    const logicLayerResponse = await callAI(logicLayerPrompt);
     const logicLayer = this.parseJSONResponse(logicLayerResponse, 'backend');
 
     this.log('  🖼️ Presentation layer analysis...');
@@ -163,7 +163,7 @@ Return ONLY the technical instruction set for the Coder.`;
       database: dataLayer,
       backend: logicLayer
     });
-    const presentationLayerResponse = await callGLM(presentationLayerPrompt);
+    const presentationLayerResponse = await callAI(presentationLayerPrompt);
     const presentationLayer = this.parseJSONResponse(presentationLayerResponse, 'frontend');
 
     const safeTask = (userTask && typeof userTask === 'string') ? userTask : 'New Project';
@@ -172,7 +172,7 @@ Return ONLY the technical instruction set for the Coder.`;
     let blueprint = null;
     try {
       const mergePrompt = buildMergePrompt(dataLayer, logicLayer, presentationLayer, projectName);
-      const mergedResponse = await callGLM(mergePrompt);
+      const mergedResponse = await callAI(mergePrompt);
       blueprint = this.parseJSONResponse(mergedResponse, 'full');
     } catch (e) {
       this.log(`⚠️ Merge phase failed or timed out: ${e.message}. Using fallback synthesis.`);
@@ -202,7 +202,7 @@ Return ONLY the technical instruction set for the Coder.`;
     this.log('🎯 Running single-pass analysis...');
 
     const prompt = buildArchitectPrompt(userTask, JSON.stringify(projectContext));
-    const response = await callGLM(prompt);
+    const response = await callAI(prompt);
 
     let blueprint = this.parseJSONResponse(response, 'full');
 

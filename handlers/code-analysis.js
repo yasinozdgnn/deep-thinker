@@ -1,4 +1,4 @@
-import { callGLM, extractCodeFromResponse, readFileContent, writeFileContent, searchFiles, validateFilePath } from '../helpers/index.js';
+import { callAI, extractCodeFromResponse, readFileContent, writeFileContent, searchFiles, validateFilePath } from '../helpers/index.js';
 
 export const codeAnalysisHandlers = {
   refactor_code: async (args) => {
@@ -7,7 +7,7 @@ export const codeAnalysisHandlers = {
     
     const code = await readFileContent(args.filePath);
     const prompt = `Refactor this code: ${args.instructions}\n\nCode:\n\`\`\`\n${code}\n\`\`\`\n\nReturn only the refactored code.`;
-    const result = await callGLM(prompt);
+    const result = await callAI(prompt);
     const newCode = extractCodeFromResponse(result);
     await writeFileContent(args.filePath, newCode);
     return {
@@ -26,7 +26,7 @@ export const codeAnalysisHandlers = {
     
     const code = await readFileContent(args.filePath);
     const prompt = `Explain this code in detail:\n\`\`\`\n${code}\n\`\`\``;
-    const result = await callGLM(prompt);
+    const result = await callAI(prompt);
     return {
       content: [{ type: "text", text: `[Deep Thinking]\n\n${result}` }],
     };
@@ -38,7 +38,7 @@ export const codeAnalysisHandlers = {
     
     const code = await readFileContent(args.filePath);
     const prompt = `Add inline comments to this code explaining what each part does:\n\`\`\`\n${code}\n\`\`\`\n\nReturn only the commented code.`;
-    const result = await callGLM(prompt);
+    const result = await callAI(prompt);
     const newCode = extractCodeFromResponse(result);
     await writeFileContent(args.filePath, newCode);
     return {
@@ -76,7 +76,7 @@ Code:
 ${code}
 \`\`\``;
     
-    const result = await callGLM(prompt);
+    const result = await callAI(prompt);
     
     if (autoFix) {
       const fixedCode = extractCodeFromResponse(result);
@@ -129,7 +129,7 @@ Code:
 ${code}
 \`\`\``;
     
-    const result = await callGLM(prompt);
+    const result = await callAI(prompt);
     const fixedCode = extractCodeFromResponse(result);
     
     if (fixedCode && fixedCode.trim() !== code.trim()) {
@@ -165,7 +165,7 @@ Code:
 \`\`\`
 ${code}
 \`\`\``;
-    const result = await callGLM(prompt);
+    const result = await callAI(prompt);
     const optimizedCode = extractCodeFromResponse(result);
     if (optimizedCode && optimizedCode.trim() !== code.trim()) {
       await writeFileContent(args.filePath, optimizedCode);

@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { callGLM } from '../helpers/index.js';
+import { callAI } from '../helpers/index.js';
 import { SimpleVectorStore } from './SimpleVectorStore.js';
 
 export class CodeIndexer {
@@ -89,7 +89,7 @@ Return a JSON object with:
 
 JSON:`;
 
-    const response = await callGLM(prompt);
+    const response = await callAI(prompt);
     
     try {
       const match = response.match(/\{[\s\S]*\}/);

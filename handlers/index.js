@@ -11,6 +11,7 @@ import { architectHandlers } from './architect.js';
 import { securityHandlers } from './security.js';
 import { apiHandlers } from './api.js';
 import { agentHandlers } from './agent.js';
+import { opencodeHandlers } from './opencode.js';
 
 export const handlers = {
   ...coreHandlers,
@@ -26,6 +27,6 @@ export const handlers = {
   ...agentHandlers,
   ...securityHandlers,
   ...apiHandlers,
-  deep_think_code: swarmHandlers.delegate_to_swarm
+  ...opencodeHandlers,
 };
 
